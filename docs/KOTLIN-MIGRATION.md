@@ -77,3 +77,20 @@ Lint 警告未被隐藏：包含保留旧目标 SDK/依赖版本、纯 ARM64 rel
 - 原发布签名尚未安全配置到新仓库，因此未生成可覆盖旧发布版的签名 APK，也未进行真实旧版覆盖升级测试。
 - 未连接红米 K70 真机；熄屏长时记录、电池/内存/启动耗时、真实 GNSS 和全部网络条件尚需设备验收。
 - 未承诺二进制体积完全一致或所有设备性能绝对一致。现有算法、线程模型、传感器订阅和界面行为测试未发现回归。
+
+## GitHub 首页语言统计核查（2026-11-21）
+
+用户反馈首页仍显示 Java 98%。直接核对 GitHub 远端默认分支 `main` 的完整 Git tree（`c88379055a75d0872748d64b6946f960440ae798`，结果未截断）后确认：
+
+- 当前远端有 45 个 `.kt` 文件，共 332,756 bytes；其中应用 27 个、JVM 测试 13 个、Android 测试 5 个。
+- 当前远端 `.java` 文件为 0；没有 `.gitattributes` 语言覆盖规则。
+- GitHub `/languages` 仍返回 Java 275,857 bytes、Python 4,695 bytes、Shell 750 bytes。
+- 上述三个值与首次推送的、迁移前基线 `6df56b8` 完全一致；当前 Python 文件实际已为 6,376 bytes。说明该语言统计尚未反映后续提交，而不是 Kotlin 源码被 Java 文件占比压过。
+
+GitHub 官方说明：语言统计由 Linguist 生成，并在向默认分支推送后更新；结果存在缓存。本次推送核查记录以尝试触发重新计算，不修改语言识别标签、不删除历史、不把 Java 标记成 Kotlin。不保证 GitHub 后台立即刷新，提交本说明不代表首页已经更新。
+
+官方依据：
+- https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-repository-languages
+- https://github.com/github-linguist/linguist/blob/main/docs/troubleshooting.md
+
+原始远端核查结果见 `docs/verification/github-language-audit.json`。本次仅添加说明与核查数据，不改变应用及构建代码。
