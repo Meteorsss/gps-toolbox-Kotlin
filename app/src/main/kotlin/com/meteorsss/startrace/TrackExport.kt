@@ -7,7 +7,7 @@ enum class TrackExport(val mimeType: String, val extension: String) {
     CSV("text/csv", ".csv");
 
     companion object {
-        fun restore(name: String?, legacyRaw: Boolean): TrackExport {
+        fun restore(name: String, legacyRaw: Boolean): TrackExport {
             if (name != null) {
                 try {
                     return valueOf(name)

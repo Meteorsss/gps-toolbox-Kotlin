@@ -50,5 +50,5 @@ object Gcj02 {
         return Coordinate(latitude + dlat, longitude + dlon, true)
     }
 
-    class Coordinate private constructor(val latitude: Double, val longitude: Double, val converted: Boolean)
+    class Coordinate internal constructor(val latitude: Double, val longitude: Double, val converted: Boolean)
 }

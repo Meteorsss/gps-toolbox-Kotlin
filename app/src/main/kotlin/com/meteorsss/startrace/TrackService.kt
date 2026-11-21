@@ -3,7 +3,7 @@ package com.meteorsss.startrace
 import android.app.*
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.location.Location
+import android.location!!.Location
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock

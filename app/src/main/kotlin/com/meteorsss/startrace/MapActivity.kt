@@ -45,8 +45,8 @@ import kotlin.math.max
 
 /** The map is a view of local WGS84 data, never a replacement recorder or location provider.  */
 class MapActivity : Activity() {
-    private var app: App? = null
-    private var ui: Ui? = null
+    private lateinit var app: App
+    private lateinit var ui: Ui
     private var mapView: MapView? = null
     private var map: MapLibreMap? = null
     private var style: Style? = null
@@ -137,11 +137,11 @@ class MapActivity : Activity() {
         root.addView(holder, LinearLayout.LayoutParams(-1, 0, 1f))
         val attribution = ui!!.row()
         attribution.setPadding(ui!!.dp(10f), ui!!.dp(5f), ui!!.dp(10f), ui!!.dp(5f))
-        for (item in arrayOf<Array<String?>?>(
-            arrayOf<String?>("MapLibre", "https://maplibre.org/"),
-            arrayOf<String?>("OpenFreeMap", "https://openfreemap.org/"),
-            arrayOf<String?>("© OpenMapTiles", "https://openmaptiles.org/"),
-            arrayOf<String?>("© OSM contributors", "https://www.openstreetmap.org/copyright")
+        for (item in arrayOf<Array<String>?>(
+            arrayOf<String>("MapLibre", "https://maplibre.org/"),
+            arrayOf<String>("OpenFreeMap", "https://openfreemap.org/"),
+            arrayOf<String>("© OpenMapTiles", "https://openmaptiles.org/"),
+            arrayOf<String>("© OSM contributors", "https://www.openstreetmap.org/copyright")
         )) {
             val link = ui!!.text(item!![0], 9, ui!!.muted)
             link.setPadding(ui!!.dp(4f), ui!!.dp(3f), ui!!.dp(4f), ui!!.dp(3f))
@@ -240,14 +240,14 @@ class MapActivity : Activity() {
             mapView!!.onCreate(mapState)
             mapView!!.addOnDidFinishLoadingMapListener(OnDidFinishLoadingMapListener { rendered = true })
             mapView!!.addOnDidFailLoadingMapListener(OnDidFailLoadingMapListener { error: String? ->
-                if (destroyed) return@addOnDidFailLoadingMapListener
+                if (destroyed) return@OnDidFailLoadingMapListener
                 mapStatus!!.setText("底图加载失败，可重试；定位与记录不受影响")
                 if (map != null && style == null) loadLocalFallback()
             })
             if (started) mapView!!.onStart()
             if (resumed) mapView!!.onResume()
             mapView!!.getMapAsync(OnMapReadyCallback { m: MapLibreMap? ->
-                if (destroyed) return@getMapAsync
+                if (destroyed) return@OnMapReadyCallback
                 map = m
                 map!!.getUiSettings().setCompassEnabled(true)
                 map!!.getUiSettings().setAttributionEnabled(true)
@@ -258,12 +258,12 @@ class MapActivity : Activity() {
                     }
                 })
                 map!!.addOnMapClickListener(OnMapClickListener { latLng: LatLng? ->
-                    if (style == null) return@addOnMapClickListener false
+                    if (style == null) return@OnMapClickListener false
                     val hit: MutableList<Feature>? =
                         map!!.queryRenderedFeatures(
                             map!!.getProjection().toScreenLocation(latLng!!), "places-layer"
                         )
-                    if (hit!!.isEmpty()) return@addOnMapClickListener false
+                    if (hit!!.isEmpty()) return@OnMapClickListener false
                     val f: Feature? = hit.get(0)
                     AlertDialog.Builder(this)
                         .setTitle(f!!.getStringProperty("name"))
@@ -295,7 +295,7 @@ class MapActivity : Activity() {
         map!!.setStyle(
             builder,
             OnStyleLoaded { s: Style? ->
-                if (destroyed) return@setStyle
+                if (destroyed) return@OnStyleLoaded
                 style = s
                 addOverlays()
                 mapStatus!!.setText(if (online) "在线底图已载入 · 瓦片按视野加载" else "仅本地轨迹 · 无道路底图 · 不联网")
@@ -321,7 +321,7 @@ class MapActivity : Activity() {
         map!!.setStyle(
             Style.Builder().fromJson(MapPolicy.LOCAL_STYLE),
             OnStyleLoaded { s: Style? ->
-                if (destroyed) return@setStyle
+                if (destroyed) return@OnStyleLoaded
                 style = s
                 addOverlays()
                 lastFixElapsed = 0
@@ -332,7 +332,7 @@ class MapActivity : Activity() {
 
     private fun addOverlays() {
         for (id in arrayOf<String>("track", "position", "accuracy", "endpoints", "places")) style!!.addSource(
-            GeoJsonSource(id, FeatureCollection.fromFeatures(arrayOf<Feature?>()))
+            GeoJsonSource(id, FeatureCollection.fromFeatures(arrayOf<Feature>()))
         )
         style!!.addLayer(
             FillLayer("accuracy-layer", "accuracy")
@@ -385,7 +385,7 @@ class MapActivity : Activity() {
         )
     }
 
-    private fun setSource(id: String, features: MutableList<Feature?>?) {
+    private fun setSource(id: String, features: MutableList<Feature>?) {
         if (style == null) return
         val source = style!!.getSourceAs<GeoJsonSource?>(id)
         if (source != null) source.setGeoJson(FeatureCollection.fromFeatures(features!!))
@@ -408,13 +408,13 @@ class MapActivity : Activity() {
         )
         if (style == null) return
         if (!fresh) {
-            setSource("position", mutableListOf<Feature?>())
-            setSource("accuracy", mutableListOf<Feature?>())
+            setSource("position", mutableListOf<Feature>())
+            setSource("accuracy", mutableListOf<Feature>())
             return
         }
         setSource(
             "position",
-            mutableListOf<Feature?>(
+            mutableListOf<Feature>(
                 Feature.fromGeometry(Point.fromLngLat(l.getLongitude(), l.getLatitude()))
             )
         )
@@ -426,7 +426,7 @@ class MapActivity : Activity() {
         for (p in ring!!) coordinates.add(Point.fromLngLat(p[1], p[0]))
         setSource(
             "accuracy",
-            if (coordinates.isEmpty()) mutableListOf<Feature?>() else mutableListOf<Feature?>(
+            if (coordinates.isEmpty()) mutableListOf<Feature>() else mutableListOf<Feature>(
                 Feature.fromGeometry(Polygon.fromLngLats(mutableListOf<MutableList<Point?>?>(coordinates)))
             )
         )
@@ -449,7 +449,7 @@ class MapActivity : Activity() {
         updateFollowLabel()
         if (!app!!.engine.precise()) {
             requestPermissions(
-                arrayOf<String?>(
+                arrayOf<String>(
                     Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
                 ),
                 1
@@ -504,7 +504,7 @@ class MapActivity : Activity() {
             val trackName = name
             app!!.main.post(Runnable {
                 loadingData = false
-                if (destroyed || sequence != loadSequence || displayTrack != id) return@post
+                if (destroyed || sequence != loadSequence || displayTrack != id) return@Runnable
                 points = pts
                 places = pl
                 historicalStats = result
@@ -518,14 +518,14 @@ class MapActivity : Activity() {
 
     private fun drawTrack() {
         if (style == null) return
-        val lines: MutableList<Feature?>? = ArrayList<Feature?>()
+        val lines: MutableList<Feature> = ArrayList<Feature>()
         for (segment in TrackGeometry.segments(points)) {
             val path: MutableList<Point?> = ArrayList<Point?>()
             for (p in segment) path.add(Point.fromLngLat(p.lon, p.lat))
             if (path.size >= 2) lines!!.add(Feature.fromGeometry(LineString.fromLngLats(path)))
         }
         setSource("track", lines)
-        val markers: MutableList<Feature?> = ArrayList<Feature?>()
+        val markers: MutableList<Feature> = ArrayList<Feature>()
         if (!points.isEmpty()) {
             val start = points.get(0)
             val end = points.get(points.size - 1)
@@ -537,7 +537,7 @@ class MapActivity : Activity() {
             markers.add(b)
         }
         setSource("endpoints", markers)
-        val favorites: MutableList<Feature?> = ArrayList<Feature?>()
+        val favorites: MutableList<Feature> = ArrayList<Feature>()
         for (p in places) {
             val f = Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat))
             f!!.addStringProperty("name", p.name)
@@ -724,7 +724,7 @@ class MapActivity : Activity() {
         Toast.makeText(this, text, Toast.LENGTH_LONG).show()
     }
 
-    override fun onRequestPermissionsResult(request: Int, permissions: Array<String?>?, results: IntArray?) {
+    override fun onRequestPermissionsResult(request: Int, permissions: Array<String>, results: IntArray?) {
         super.onRequestPermissionsResult(request, permissions!!, results!!)
         app!!.engine.reconcile()
         updatePosition()
@@ -776,7 +776,7 @@ class MapActivity : Activity() {
         if (mapView != null) mapView!!.onLowMemory()
     }
 
-    override fun onSaveInstanceState(out: Bundle?) {
+    override fun onSaveInstanceState(out: Bundle) {
         super.onSaveInstanceState(out!!)
         val state: Bundle? = Bundle()
         if (mapView != null) mapView!!.onSaveInstanceState(state!!)

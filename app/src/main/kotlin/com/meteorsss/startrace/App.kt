@@ -7,9 +7,9 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class App : Application() {
-    var store: Store? = null
-    var engine: GnssEngine? = null
-    val io: ExecutorService? = Executors.newSingleThreadExecutor()
+    lateinit var store: Store
+    lateinit var engine: GnssEngine
+    val io: ExecutorService = Executors.newSingleThreadExecutor()
     val main: Handler = Handler(Looper.getMainLooper())
 
     override fun onCreate() {

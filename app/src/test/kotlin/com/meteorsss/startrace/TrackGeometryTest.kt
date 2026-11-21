@@ -13,7 +13,7 @@ class TrackGeometryTest {
     fun breaksArePreserved() {
         Assert.assertEquals(
             2,
-            TrackGeometry.segments(Arrays.asList<TrackPoint?>(p(110.0, 0, true), p(111.0, 0, true), p(112.0, 1, true)))
+            TrackGeometry.segments(Arrays.asList<TrackPoint>(p(110.0, 0, true), p(111.0, 0, true), p(112.0, 1, true)))
                 .size.toLong()
         )
     }
@@ -21,7 +21,7 @@ class TrackGeometryTest {
     @Test
     fun noDateLineBridge() {
         Assert.assertEquals(
-            2, TrackGeometry.segments(Arrays.asList<TrackPoint?>(p(179.0, 0, true), p(-179.0, 0, true))).size.toLong()
+            2, TrackGeometry.segments(Arrays.asList<TrackPoint>(p(179.0, 0, true), p(-179.0, 0, true))).size.toLong()
         )
     }
 
@@ -29,7 +29,7 @@ class TrackGeometryTest {
     fun rejectedPointDoesNotGetConnected() {
         Assert.assertEquals(
             2,
-            TrackGeometry.segments(Arrays.asList<TrackPoint?>(p(110.0, 0, true), p(111.0, 0, false), p(112.0, 0, true)))
+            TrackGeometry.segments(Arrays.asList<TrackPoint>(p(110.0, 0, true), p(111.0, 0, false), p(112.0, 0, true)))
                 .size.toLong()
         )
     }

@@ -36,7 +36,7 @@ class Ui(val context: Context, val light: Boolean) {
         return Math.round(n * context.getResources().getDisplayMetrics().density)
     }
 
-    fun text(value: String?, size: Int, color: Int): TextView {
+    fun text(value: String, size: Int, color: Int): TextView {
         val t = TextView(context)
         t.setText(value)
         t.setTextSize(size.toFloat())
@@ -47,7 +47,7 @@ class Ui(val context: Context, val light: Boolean) {
         return t
     }
 
-    fun title(value: String?, size: Int): TextView {
+    fun title(value: String, size: Int): TextView {
         val t = text(value, size, text)
         t.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL))
         return t
@@ -85,11 +85,11 @@ class Ui(val context: Context, val light: Boolean) {
     }
 
     fun gap(p: LinearLayout, size: Int) {
-        val v: View? = View(context)
+        val v: View = View(context)
         p.addView(v, LinearLayout.LayoutParams(1, dp(size.toFloat())))
     }
 
-    fun button(label: String?, primary: Boolean, action: Runnable?): TextView {
+    fun button(label: String, primary: Boolean, action: Runnable?): TextView {
         val b = title(label, 14)
         b.setGravity(Gravity.CENTER)
         b.setMinHeight(dp(48f))
@@ -109,7 +109,7 @@ class Ui(val context: Context, val light: Boolean) {
 
     fun pair(parent: LinearLayout, a: View?, b: View?) {
         val row = row()
-        val left: LinearLayout.LayoutParams? = LinearLayout.LayoutParams(0, -2, 1f)
+        val left: LinearLayout.LayoutParams = LinearLayout.LayoutParams(0, -2, 1f)
         left!!.rightMargin = dp(6f)
         val right = LinearLayout.LayoutParams(0, -2, 1f)
         right.leftMargin = dp(6f)
@@ -118,7 +118,7 @@ class Ui(val context: Context, val light: Boolean) {
         parent.addView(row)
     }
 
-    fun section(parent: LinearLayout, eyebrow: String?, title: String?) {
+    fun section(parent: LinearLayout, eyebrow: String, title: String?) {
         val e = text(eyebrow, 11, accent)
         e.setLetterSpacing(.12f)
         parent.addView(e)

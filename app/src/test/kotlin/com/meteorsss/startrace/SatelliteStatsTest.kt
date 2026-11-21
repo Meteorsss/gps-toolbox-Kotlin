@@ -18,7 +18,7 @@ class SatelliteStatsTest {
     @Test
     fun multiFrequencyCountsOneSatelliteAndOrsUsed() {
         val s =
-            SatelliteStats.of(Arrays.asList<Signal?>(signal(5, 10, false, 30f), signal(5, 10, true, 20f)))
+            SatelliteStats.of(Arrays.asList<Signal>(signal(5, 10, false, 30f), signal(5, 10, true, 20f)))
         Assert.assertEquals(1, s.total.received().toLong())
         Assert.assertEquals(1, s.total.used().toLong())
         Assert.assertEquals(2, s.total.entries().toLong())
@@ -28,7 +28,7 @@ class SatelliteStatsTest {
     @Test
     fun sameNumberInDifferentSystemsIsNotMerged() {
         val s =
-            SatelliteStats.of(Arrays.asList<Signal?>(signal(5, 1, true, 30f), signal(1, 1, false, 25f)))
+            SatelliteStats.of(Arrays.asList<Signal>(signal(5, 1, true, 30f), signal(1, 1, false, 25f)))
         Assert.assertEquals(2, s.total.received().toLong())
         Assert.assertEquals(1, s.system(5).received().toLong())
         Assert.assertEquals(1, s.system(5).used().toLong())
@@ -38,14 +38,14 @@ class SatelliteStatsTest {
     @Test
     fun includesZeroCn0InReportedButNotTracked() {
         val s =
-            SatelliteStats.of(Arrays.asList<Signal?>(signal(1, 1, false, 0f), signal(1, 2, true, 30f)))
+            SatelliteStats.of(Arrays.asList<Signal>(signal(1, 1, false, 0f), signal(1, 2, true, 30f)))
         Assert.assertEquals(2, s.total.received().toLong())
         Assert.assertEquals(1, s.total.tracked().toLong())
     }
 
     @Test
     fun moreThanTwentyNeverTruncated() {
-        val all: MutableList<Signal?>? = ArrayList<Signal?>()
+        val all: MutableList<Signal> = ArrayList<Signal>()
         for (i in 1..50) all!!.add(signal(if (i % 2 == 0) 5 else 1, i, i < 30, 25f))
         val s = SatelliteStats.of(all)
         Assert.assertEquals(50, s.total.received().toLong())
@@ -56,13 +56,13 @@ class SatelliteStatsTest {
 
     @Test
     fun snapshotDoesNotAccumulateOldSatellites() {
-        Assert.assertEquals(1, SatelliteStats.of(Arrays.asList<Signal?>(signal(1, 1, true, 30f))).total.used().toLong())
-        Assert.assertEquals(0, SatelliteStats.of(mutableListOf<Signal?>()).total.used().toLong())
+        Assert.assertEquals(1, SatelliteStats.of(Arrays.asList<Signal>(signal(1, 1, true, 30f))).total.used().toLong())
+        Assert.assertEquals(0, SatelliteStats.of(mutableListOf<Signal>()).total.used().toLong())
     }
 
     @Test
     fun emptyAndUnknownAreCounted() {
-        val s = SatelliteStats.of(Arrays.asList<Signal?>(signal(0, 10, false, Float.NaN)))
+        val s = SatelliteStats.of(Arrays.asList<Signal>(signal(0, 10, false, Float.NaN)))
         Assert.assertEquals(1, s.system(0).received().toLong())
         Assert.assertEquals(0, s.total.tracked().toLong())
         Assert.assertEquals(0, s.system(7).received().toLong())
@@ -73,7 +73,7 @@ class SatelliteStatsTest {
     fun positiveEntriesAreDifferentFromPositiveSatellites() {
         val s =
             SatelliteStats.of(
-                Arrays.asList<Signal?>(
+                Arrays.asList<Signal>(
                     signal(4, 194, true, 35f),
                     signal(4, 194, true, 25f),
                     signal(4, 195, true, 40f),
@@ -92,7 +92,7 @@ class SatelliteStatsTest {
     fun constellationEntrySumsMatchTotal() {
         val s =
             SatelliteStats.of(
-                Arrays.asList<Signal?>(
+                Arrays.asList<Signal>(
                     signal(5, 6, true, 30f),
                     signal(5, 6, true, 38f),
                     signal(5, 6, false, 0f),
@@ -116,7 +116,7 @@ class SatelliteStatsTest {
 
     @Test
     fun zeroSignalUsedFlagIsPreservedRatherThanGuessed() {
-        val s = SatelliteStats.of(Arrays.asList<Signal?>(signal(1, 9, true, 0f)))
+        val s = SatelliteStats.of(Arrays.asList<Signal>(signal(1, 9, true, 0f)))
         Assert.assertEquals(1, s.total.usedEntries().toLong())
         Assert.assertEquals(1, s.total.used().toLong())
         Assert.assertEquals(0, s.total.trackedEntries().toLong())
@@ -128,7 +128,7 @@ class SatelliteStatsTest {
         val b = signal(1, 10, false, 15f)
         a.hasFrequency = false
         b.hasFrequency = false
-        val s = SatelliteStats.of(Arrays.asList<Signal?>(a, b))
+        val s = SatelliteStats.of(Arrays.asList<Signal>(a, b))
         Assert.assertEquals(2, s.total.entries().toLong())
         Assert.assertEquals(1, s.total.received().toLong())
     }

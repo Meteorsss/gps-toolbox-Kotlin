@@ -4,8 +4,8 @@ import android.app.AlertDialog
 import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Bitmap
-import android.location.GnssStatus
-import android.location.Location
+import android.location!!.GnssStatus
+import android.location!!.Location
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.view.View
@@ -69,7 +69,7 @@ class AppSmokeTest {
                 Preferences.theme(a, ThemeMode.DARK)
                 a!!.buildRoot()
             })
-            val expected: Array<String?>? = arrayOf<String?>("此刻，在哪里", "头顶的卫星", "把走过的路留下", "随手可用")
+            val expected: Array<String>? = arrayOf<String>("此刻，在哪里", "头顶的卫星", "把走过的路留下", "随手可用")
             for (i in 0..3) {
                 val page = i
                 scenario.onActivity(ActivityAction { a: MainActivity? ->
@@ -90,7 +90,7 @@ class AppSmokeTest {
                 Assert.assertEquals("", a!!.mode)
                 Assert.assertTrue(a.visibleText().contains("随手可用"))
             })
-            val modes: Array<String?>? = arrayOf<String?>("settings", "places", "compass", "speed", "diagnostics")
+            val modes: Array<String>? = arrayOf<String>("settings", "places", "compass", "speed", "diagnostics")
             for (mode in modes!!) {
                 scenario.onActivity(ActivityAction { a: MainActivity? -> a!!.navigate(mode) })
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
@@ -170,18 +170,18 @@ class AppSmokeTest {
                 SystemClock.sleep(1500)
                 scenario.onActivity(ActivityAction { a: MainActivity? ->
                     Assert.assertNotNull(TrackService.Companion.active)
-                    id[0] = TrackService.Companion.active.trackId
+                    id[0] = TrackService.Companion.active!!.trackId
                     Assert.assertTrue(id[0] > 0)
                     a!!.startService(Intent(a, TrackService::class.java).setAction("PAUSE"))
                 })
                 SystemClock.sleep(500)
                 scenario.onActivity(ActivityAction { a: MainActivity? ->
-                    Assert.assertTrue(TrackService.Companion.active.paused)
+                    Assert.assertTrue(TrackService.Companion.active!!.paused)
                     a!!.startService(Intent(a, TrackService::class.java).setAction("RESUME"))
                 })
                 SystemClock.sleep(500)
                 scenario.onActivity(ActivityAction { a: MainActivity? ->
-                    Assert.assertFalse(TrackService.Companion.active.paused)
+                    Assert.assertFalse(TrackService.Companion.active!!.paused)
                     a!!.startService(Intent(a, TrackService::class.java).setAction("STOP"))
                 })
                 SystemClock.sleep(500)
@@ -306,7 +306,7 @@ class AppSmokeTest {
                 Assert.assertTrue(a.visibleText().contains("39.9119540"))
                 a.setCoordinateSystem(true)
                 Assert.assertTrue(a.visibleText().contains("39.9133455"))
-                Assert.assertEquals(39.911954, a.e.location.getLatitude(), 0.0)
+                Assert.assertEquals(39.911954, a.e.location!!.getLatitude(), 0.0)
             })
             awaitActivity(
                 scenario,
@@ -314,7 +314,7 @@ class AppSmokeTest {
                 "clipboard requires foreground window focus"
             )
             scenario.onActivity(ActivityAction { a: MainActivity? ->
-                a!!.e.location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos())
+                a!!.e.location!!.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos())
                 a.copyHere()
             })
             awaitActivity(
@@ -333,7 +333,7 @@ class AppSmokeTest {
             scenario.onActivity(ActivityAction { a: MainActivity? ->
                 Assert.assertTrue(a!!.gcj())
                 a.setCoordinateSystem(false)
-                val entries: MutableList<Satellite?> = ArrayList<Satellite?>()
+                val entries: MutableList<Satellite> = ArrayList<Satellite>()
                 for (i in 1..30) {
                     val s = Satellite()
                     s.system = if (i <= 20) 5 else 1
@@ -360,7 +360,7 @@ class AppSmokeTest {
                 Assert.assertTrue(a.visibleText().contains("全部频率信号明细"))
             })
             screenshot("satellite-breakdown-fixture")
-            scenario.onActivity(ActivityAction { a: MainActivity? -> a!!.e.acceptSatelliteSnapshot(mutableListOf<Satellite?>()) })
+            scenario.onActivity(ActivityAction { a: MainActivity? -> a!!.e.acceptSatelliteSnapshot(mutableListOf<Satellite>()) })
         }
     }
 
@@ -385,7 +385,7 @@ class AppSmokeTest {
         val id = longArrayOf(-1)
         val created = longArrayOf(0)
         val dialog = arrayOf<AlertDialog?>(null)
-        val original = arrayOf<Place?>(null)
+        val original = arrayOf<Place>(null)
         try {
             ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
                 scenario.onActivity(ActivityAction { a: MainActivity? ->

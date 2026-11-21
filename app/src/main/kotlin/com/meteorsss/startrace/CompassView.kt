@@ -14,7 +14,7 @@ import kotlin.math.sin
 /** A vsync-driven compass. Only the dial/needle redraw, never the containing page.  */
 class CompassView(private val activity: MainActivity, private val destination: Place?) : View(activity), FrameCallback {
     private val ui: Ui
-    private val paint: Paint? = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val paint: Paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val typeface: Typeface? = Typeface.create("sans-serif-medium", Typeface.NORMAL)
     private val arrow = Path()
     private val smoothing = HeadingSmoother()
@@ -86,8 +86,8 @@ class CompassView(private val activity: MainActivity, private val destination: P
         locationFresh = activity.e.fresh()
         declination = activity.e.declination()
         if (destination != null && locationFresh) targetBearing = Geo.bearing(
-            activity.e.location.getLatitude(),
-            activity.e.location.getLongitude(),
+            activity.e.location!!.getLatitude(),
+            activity.e.location!!.getLongitude(),
             destination.lat,
             destination.lon
         ).toFloat()
@@ -140,7 +140,7 @@ class CompassView(private val activity: MainActivity, private val destination: P
             )
             deg += 5
         }
-        val labels: Array<String?>? = arrayOf<String?>("N", "E", "S", "W")
+        val labels: Array<String>? = arrayOf<String>("N", "E", "S", "W")
         for (i in 0..3) {
             val angle = Math.toRadians((i * 90).toDouble())
             text(

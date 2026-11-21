@@ -23,9 +23,9 @@ class Charts(
     private val destination: Place?
 ) : View(a) {
     private val u: Ui
-    private val p: Paint? = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val p: Paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var loaded: Long = 0
-    private var points: MutableList<TrackPoint>? = mutableListOf<TrackPoint>()
+    private var points: MutableList<TrackPoint> = mutableListOf<TrackPoint>()
 
     init {
         u = a.u
@@ -58,7 +58,7 @@ class Charts(
     }
 
     private fun label(
-        c: Canvas, text: String?, x: Float, y: Float, color: Int, size: Int, align: Align?
+        c: Canvas, text: String, x: Float, y: Float, color: Int, size: Int, align: Align?
     ) {
         p!!.setStyle(Paint.Style.FILL)
         p.setTextSize(u.dp(size.toFloat()).toFloat())
@@ -97,7 +97,7 @@ class Charts(
         label(c, "S", cx, cy + r + u.dp(17f), u.muted, 12, Align.CENTER)
         label(c, "W", cx - r - u.dp(12f), cy + u.dp(4f), u.muted, 12, Align.CENTER)
         label(c, "E", cx + r + u.dp(12f), cy + u.dp(4f), u.muted, 12, Align.CENTER)
-        val drawn: MutableSet<String?> = HashSet<String?>()
+        val drawn: MutableSet<String> = HashSet<String>()
         for (s in a.e.currentSatellites()) {
             if (!drawn.add(s.key())) continue
             val rr = r * (1 - s.elevation / 90f)
@@ -113,11 +113,11 @@ class Charts(
     }
 
     private fun signals(c: Canvas) {
-        val list: MutableList<Satellite>? = ArrayList<Satellite>(a.e.currentSatellites())
-        if (a.groupSignals()) list!!.sort(
-            Comparator.comparingInt<Satellite?>(ToIntFunction { s: Satellite? -> s!!.system })
+        val list: MutableList<Satellite> = ArrayList<Satellite>(a.e.currentSatellites())
+        if (a.groupSignals()) list!!.sortWith(
+            Comparator.comparingInt<Satellite>(ToIntFunction { s: Satellite? -> s!!.system })
                 .thenComparingInt(ToIntFunction { s: Satellite? -> s!!.id })
-                .thenComparingDouble(ToDoubleFunction { s: Satellite? -> if (s!!.hasFrequency) s.frequency else 0f })
+                .thenComparingDouble(ToDoubleFunction { s: Satellite? -> if (s!!.hasFrequency) s.frequency.toDouble() else 0.0 })
         )
         val n = list!!.size
         if (n == 0) {

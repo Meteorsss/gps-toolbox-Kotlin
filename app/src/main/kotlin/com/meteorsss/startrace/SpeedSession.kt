@@ -6,7 +6,7 @@ import kotlin.math.max
  * In-memory foreground speedometer session: no recorder, database, saved-point cadence or history.
  */
 class SpeedSession(private var notBefore: Long) {
-    class Snapshot private constructor(
+    class Snapshot internal constructor(
         val distance: Double,
         val maxMps: Double,
         val averageMps: Double,

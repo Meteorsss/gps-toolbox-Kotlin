@@ -7,7 +7,7 @@ import android.content.*
 import android.content.DialogInterface.OnShowListener
 import android.content.pm.PackageManager
 import android.graphics.Insets
-import android.location.Location
+import android.location!!.Location
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -34,18 +34,18 @@ import java.util.function.Supplier
 import kotlin.math.max
 
 class MainActivity : Activity() {
-    var app: App? = null
-    var e: GnssEngine? = null
-    var u: Ui? = null
-    var body: LinearLayout? = null
+    lateinit var app: App
+    lateinit var e: GnssEngine
+    lateinit var u: Ui
+    lateinit var body: LinearLayout
     var page: Int = 0
     var mode: String = ""
     var selectedTrack: Long = -1
     var destination: Place? = null
-    private var root: LinearLayout? = null
-    private var scroll: ScrollView? = null
-    private var status: TextView? = null
-    private val updates: MutableList<Runnable>? = ArrayList<Runnable>()
+    private lateinit var root: LinearLayout
+    private lateinit var scroll: ScrollView
+    private lateinit var status: TextView
+    private val updates: MutableList<Runnable> = ArrayList<Runnable>()
     private val compassViews: MutableList<CompassView> = ArrayList<CompassView>()
     private var resumed = false
     private var rendering = false
@@ -65,7 +65,7 @@ class MainActivity : Activity() {
         e = app!!.engine
         if (saved != null) {
             page = saved.getInt("page")
-            mode = saved.getString("mode", "")
+            mode = saved.getString("mode", "") ?: ""
             selectedTrack = saved.getLong("track", -1)
             exportId = saved.getLong("export", -1)
             exportFormat = TrackExport.Companion.restore(saved.getString("export_format"), saved.getBoolean("raw"))
@@ -130,7 +130,7 @@ class MainActivity : Activity() {
         val nav = u!!.row()
         nav.setPadding(u!!.dp(10f), u!!.dp(8f), u!!.dp(10f), u!!.dp(8f))
         nav.setBackgroundColor(u!!.card)
-        val names: Array<String?>? = arrayOf<String?>("◉  仪表", "✦  卫星", "⌁  记录", "⊞  工具")
+        val names: Array<String>? = arrayOf<String>("◉  仪表", "✦  卫星", "⌁  记录", "⊞  工具")
         for (i in 0..3) {
             val n = i
             val item = u!!.button(names!![i], i == page, Runnable { goPage(n) })
@@ -199,7 +199,7 @@ class MainActivity : Activity() {
         update.run()
     }
 
-    fun bind(target: TextView, value: Supplier<String?>) {
+    fun bind(target: TextView, value: Supplier<String>) {
         watch(Runnable {
             val s = value.get()
             if (target.getText().toString() != s) target.setText(s)
@@ -269,7 +269,7 @@ class MainActivity : Activity() {
                     "○  系统定位已关闭"
                 else
                     if (e!!.fresh())
-                        (if (e!!.location.isMock())
+                        (if (e!!.location!!.isMock())
                             "⚠  模拟位置 · 不计入有效轨迹"
                         else
                             "●  卫星定位 · " + max(0, e!!.age() / 1000) + " 秒前更新")
@@ -278,7 +278,7 @@ class MainActivity : Activity() {
         val t: TrackService? = TrackService.Companion.active
         if (t != null) state += "   /   " + (if (t.paused) "记录已暂停" else "记录中")
         status!!.setText(state)
-        status!!.setTextColor(if (e!!.fresh() && !e!!.location.isMock()) u!!.accent else u!!.warning)
+        status!!.setTextColor(if (e!!.fresh() && !e!!.location!!.isMock()) u!!.accent else u!!.warning)
         for (update in ArrayList<Runnable>(updates)) update.run()
     }
 
@@ -339,7 +339,7 @@ class MainActivity : Activity() {
                 "继续",
                 DialogInterface.OnClickListener { d: DialogInterface?, w: Int ->
                     requestPermissions(
-                        arrayOf<String?>(
+                        arrayOf<String>(
                             Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION
                         ),
@@ -378,7 +378,7 @@ class MainActivity : Activity() {
                     "继续",
                     DialogInterface.OnClickListener { d: DialogInterface?, w: Int ->
                         pendingRecord = true
-                        requestPermissions(arrayOf<String?>(Manifest.permission.POST_NOTIFICATIONS), 2)
+                        requestPermissions(arrayOf<String>(Manifest.permission.POST_NOTIFICATIONS), 2)
                     })
                 .setNegativeButton("取消", null)
                 .show()
@@ -397,7 +397,7 @@ class MainActivity : Activity() {
         }
     }
 
-    override fun onRequestPermissionsResult(code: Int, permissions: Array<String?>?, grants: IntArray?) {
+    override fun onRequestPermissionsResult(code: Int, permissions: Array<String>, grants: IntArray) {
         super.onRequestPermissionsResult(code, permissions!!, grants!!)
         e!!.reconcile()
         if (code == 1 && !e!!.precise()) toast("未获得精确位置权限。可在应用设置中开启。")
@@ -430,7 +430,7 @@ class MainActivity : Activity() {
         copyCoordinate(text, "WGS84")
     }
 
-    private fun copyCoordinate(text: String?, system: String) {
+    private fun copyCoordinate(text: String, system: String) {
         getSystemService<ClipboardManager?>(ClipboardManager::class.java)!!
             .setPrimaryClip(ClipData.newPlainText(system + " 坐标", text))
         toast("已复制，坐标系 " + system + "。")
@@ -468,7 +468,7 @@ class MainActivity : Activity() {
             return
         }
         if (gcj()) {
-            val c = Gcj02.fromWgs84(e!!.location.getLatitude(), e!!.location.getLongitude())
+            val c = Gcj02.fromWgs84(e!!.location!!.getLatitude(), e!!.location!!.getLongitude())
             if (!c.converted) {
                 toast("当前位置超出近似转换覆盖范围，请切换到 WGS84。")
                 return
@@ -477,7 +477,7 @@ class MainActivity : Activity() {
                 String.format(Locale.US, "%.7f, %.7f (GCJ-02 · 离线近似)", c.latitude, c.longitude),
                 "GCJ-02"
             )
-        } else copyCoordinate(coordinates(e!!.location) + " (WGS84)", "WGS84")
+        } else copyCoordinate(coordinates(e!!.location!!) + " (WGS84)", "WGS84")
     }
 
     fun saveHere() {
@@ -485,11 +485,11 @@ class MainActivity : Activity() {
             toast("请先等待有效定位。")
             return
         }
-        val l: Location? = Location(e!!.location)
+        val l: Location? = Location(e!!.location!!)
         placeDialog(l!!.getLatitude(), l.getLongitude())
     }
 
-    private fun input(form: LinearLayout, hint: String, value: String?, numeric: Boolean): EditText {
+    private fun input(form: LinearLayout, hint: String, value: String, numeric: Boolean): EditText {
         val field = EditText(this)
         field.setTextColor(u!!.text)
         field.setHintTextColor(u!!.muted)
@@ -672,8 +672,8 @@ class MainActivity : Activity() {
     }
 
     fun trackActions(t: Track) {
-        val live = TrackService.Companion.active != null && TrackService.Companion.active.trackId == t.id
-        val choices: Array<String?> =
+        val live = TrackService.Companion.active != null && TrackService.Companion.active!!.trackId == t.id
+        val choices: Array<String> =
             if (live)
                 arrayOf<String>("查看轨迹")
             else
@@ -731,7 +731,7 @@ class MainActivity : Activity() {
         export(t, if (raw) TrackExport.CSV else TrackExport.GPX)
     }
 
-    fun prepareExport(t: Track?, format: TrackExport): Intent? {
+    fun prepareExport(t: Track, format: TrackExport): Intent? {
         exportId = t!!.id
         exportFormat = format
         return Intent(Intent.ACTION_CREATE_DOCUMENT)
@@ -741,7 +741,7 @@ class MainActivity : Activity() {
     }
 
     fun export(t: Track, format: TrackExport) {
-        if (TrackService.Companion.active != null && TrackService.Companion.active.trackId == t.id) {
+        if (TrackService.Companion.active != null && TrackService.Companion.active!!.trackId == t.id) {
             toast("请结束记录后再导出，以获得一致的完整文件。")
             return
         }
@@ -784,14 +784,14 @@ class MainActivity : Activity() {
             input(
                 f,
                 "纬度 · 十进制度或度分秒",
-                if (e!!.fresh()) String.format(Locale.US, "%.7f", e!!.location.getLatitude()) else "",
+                if (e!!.fresh()) String.format(Locale.US, "%.7f", e!!.location!!.getLatitude()) else "",
                 true
             )
         val lon =
             input(
                 f,
                 "经度 · 十进制度或度分秒",
-                if (e!!.fresh()) String.format(Locale.US, "%.7f", e!!.location.getLongitude()) else "",
+                if (e!!.fresh()) String.format(Locale.US, "%.7f", e!!.location!!.getLongitude()) else "",
                 true
             )
         u!!.note(f, "这是格式转换，不是 WGS84 / GCJ-02 / BD-09 坐标系转换。")
@@ -835,8 +835,8 @@ class MainActivity : Activity() {
 
     fun distanceTool() {
         val f = form()
-        val a = input(f, "起点纬度", if (e!!.fresh()) "" + e!!.location.getLatitude() else "", true)
-        val b = input(f, "起点经度", if (e!!.fresh()) "" + e!!.location.getLongitude() else "", true)
+        val a = input(f, "起点纬度", if (e!!.fresh()) "" + e!!.location!!.getLatitude() else "", true)
+        val b = input(f, "起点经度", if (e!!.fresh()) "" + e!!.location!!.getLongitude() else "", true)
         val c = input(f, "终点纬度", "", true)
         val d = input(f, "终点经度", "", true)
         u!!.note(f, "两点必须使用相同的 WGS84 坐标系。结果为球面近似直线距离，不是道路里程。")
@@ -881,9 +881,8 @@ class MainActivity : Activity() {
     }
 
     fun selectTheme() {
-        val modes: Array<ThemeMode?> = ThemeMode.entries.toTypedArray()
-        val labels = Arrays.stream<ThemeMode?>(modes).map<String?> { m: ThemeMode? -> m!!.label }
-            .toArray<String?> { _Dummy_.__Array__() }
+        val modes = ThemeMode.entries.toTypedArray()
+        val labels = modes.map { it.label }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("色彩模式")
             .setSingleChoiceItems(
@@ -899,10 +898,7 @@ class MainActivity : Activity() {
     }
 
     fun selectRecordingInterval() {
-        val labels: Array<String?> =
-            Arrays.stream(RecordingCadence.Companion.SECONDS)
-                .mapToObj<String?>(IntFunction { i: Int -> i.toString() + " 秒 / 点" })
-                .toArray<String?> { _Dummy_.__Array__() }
+        val labels = RecordingCadence.SECONDS.map { "$it ? / ?" }.toTypedArray()
         var selected = 0
         for (i in RecordingCadence.Companion.SECONDS.indices) if (RecordingCadence.Companion.SECONDS[i] == Preferences.interval(
                 this
@@ -916,7 +912,7 @@ class MainActivity : Activity() {
                 DialogInterface.OnClickListener { dialog: DialogInterface?, which: Int ->
                     val seconds: Int = RecordingCadence.Companion.SECONDS[which]
                     Preferences.interval(this, seconds)
-                    if (TrackService.Companion.active != null) TrackService.Companion.active.setIntervalSeconds(seconds)
+                    if (TrackService.Companion.active != null) TrackService.Companion.active!!.setIntervalSeconds(seconds)
                     dialog!!.dismiss()
                     render()
                 })

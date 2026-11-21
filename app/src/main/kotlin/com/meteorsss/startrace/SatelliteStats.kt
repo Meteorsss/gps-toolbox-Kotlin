@@ -27,14 +27,14 @@ object SatelliteStats {
     }
 
     class Counts {
-        private val reportedIds: MutableSet<String?>? = HashSet<String?>()
-        private val usedIds: MutableSet<String?> = HashSet<String?>()
-        private val trackedIds: MutableSet<String?> = HashSet<String?>()
+        private val reportedIds: MutableSet<String> = HashSet<String>()
+        private val usedIds: MutableSet<String> = HashSet<String>()
+        private val trackedIds: MutableSet<String> = HashSet<String>()
         private var entries = 0
         private var usedEntries = 0
         private var trackedEntries = 0
 
-        private fun add(s: Signal) {
+        internal fun add(s: Signal) {
             entries++
             reportedIds!!.add(s.key())
             if (s.used) {
@@ -75,7 +75,7 @@ object SatelliteStats {
 
     class Snapshot {
         val total: Counts = Counts()
-        private val systems: MutableMap<Int?, Counts?>? = HashMap<Int?, Counts?>()
+        internal val systems: MutableMap<Int, Counts> = HashMap<Int, Counts>()
 
         fun system(type: Int): Counts {
             return systems!!.getOrDefault(type, Counts())!!

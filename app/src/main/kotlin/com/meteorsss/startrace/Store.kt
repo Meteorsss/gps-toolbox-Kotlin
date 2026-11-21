@@ -89,7 +89,7 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
 
     @Synchronized
     fun begin(name: String?): Long {
-        val v: ContentValues? = ContentValues()
+        val v: ContentValues = ContentValues()
         v!!.put("name", name)
         v.put("start", System.currentTimeMillis())
         v.put("status", "recording")
@@ -98,7 +98,7 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
 
     @Synchronized
     fun update(id: Long, duration: Long, distance: Double, status: String?) {
-        val v: ContentValues? = ContentValues()
+        val v: ContentValues = ContentValues()
         v!!.put("duration", duration)
         v.put("distance", distance)
         v.put("status", status)
@@ -108,7 +108,7 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
 
     @Synchronized
     fun add(id: Long, p: TrackPoint, mock: Boolean) {
-        val v: ContentValues? = ContentValues()
+        val v: ContentValues = ContentValues()
         v!!.put("track", id)
         v.put("lat", p.lat)
         v.put("lon", p.lon)
@@ -189,7 +189,7 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
         getReadableDatabase()
             .rawQuery(
                 "SELECT * FROM points WHERE track=? ORDER BY id",
-                arrayOf<String?>(id.toString())
+                arrayOf<String>(id.toString())
             ).use { c ->
                 while (c.moveToNext()) analysis.add(point(c))
             }
@@ -197,8 +197,8 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
     }
 
     @Synchronized
-    fun preview(id: Long, max: Int): MutableList<TrackPoint?> {
-        val points: MutableList<TrackPoint?> = ArrayList<TrackPoint?>()
+    fun preview(id: Long, max: Int): MutableList<TrackPoint> {
+        val points: MutableList<TrackPoint> = ArrayList<TrackPoint>()
         getReadableDatabase()
             .rawQuery(
                 "SELECT * FROM points WHERE track=? AND accepted=1 ORDER BY id",
@@ -227,7 +227,7 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
 
     @Synchronized
     fun rename(id: Long, name: String?) {
-        val v: ContentValues? = ContentValues()
+        val v: ContentValues = ContentValues()
         v!!.put("name", name)
         getWritableDatabase().update("tracks", v, "id=?", arrayOf<String>("" + id))
     }
@@ -238,9 +238,9 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
     }
 
     @Synchronized
-    fun savePlace(name: String?, note: String?, lat: Double, lon: Double): Long {
+    fun savePlace(name: String, note: String, lat: Double, lon: Double): Long {
         require(Geo.valid(lat, lon)) { "Invalid coordinates" }
-        val v: ContentValues? = ContentValues()
+        val v: ContentValues = ContentValues()
         v!!.put("name", name)
         v.put("note", note)
         v.put("lat", lat)
@@ -250,8 +250,8 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
     }
 
     @Synchronized
-    fun places(): MutableList<Place?> {
-        val list: MutableList<Place?> = ArrayList<Place?>()
+    fun places(): MutableList<Place> {
+        val list: MutableList<Place> = ArrayList<Place>()
         getReadableDatabase().rawQuery("SELECT * FROM places ORDER BY id DESC", null).use { c ->
             while (c.moveToNext()) {
                 val p = Place()
@@ -268,7 +268,7 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
     }
 
     @Synchronized
-    fun updatePlace(id: Long, name: String?, note: String) {
+    fun updatePlace(id: Long, name: String, note: String) {
         val title = if (name == null) "" else name.trim { it <= ' ' }
         require(!title.isEmpty()) { "地点名称不能为空" }
         require(!(title.length > 100 || note == null || note.length > 2000)) { "名称最多100字，备注最多2000字" }
@@ -276,7 +276,7 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
         values.put("name", title)
         values.put("note", note)
         check(
-            getWritableDatabase().update("places", values, "id=?", arrayOf<String?>(id.toString()))
+            getWritableDatabase().update("places", values, "id=?", arrayOf<String>(id.toString()))
                     == 1
         ) { "地点已不存在，请返回列表刷新" }
     }
@@ -314,7 +314,7 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
                     if (raw) out.write(
                         "latitude_wgs84,longitude_wgs84,ellipsoid_height_m,accuracy_m,speed_mps,utc,elapsed_ms,segment,accepted,mock,vertical_accuracy_m,msl_altitude_m,msl_accuracy_m,speed_accuracy_mps\n"
                     )
-                    else if (kml == null) out.write(Gpx.header(t.name))
+                    else if (kml == null) out.write(Gpx.header(t.name!!))
                     var segment = -1
                     while (c.moveToNext()) {
                         val p = point(c)

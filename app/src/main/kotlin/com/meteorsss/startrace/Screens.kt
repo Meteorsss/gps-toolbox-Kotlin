@@ -2,7 +2,7 @@ package com.meteorsss.startrace
 
 import android.content.Intent
 import android.graphics.Typeface
-import android.location.GnssStatus
+import android.location!!.GnssStatus
 import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
@@ -87,7 +87,7 @@ object Screens {
     }
 
     private fun metric(
-        a: MainActivity, name: String, value: Supplier<String?>, caption: String
+        a: MainActivity, name: String, value: Supplier<String>, caption: String
     ): LinearLayout {
         val u = a.u
         val p = u.panel()
@@ -144,7 +144,7 @@ object Screens {
         speed.setGravity(Gravity.CENTER)
         a.bind(
             speed,
-            Supplier { if (e.fresh() && e.location.hasSpeed()) f("%.1f", e.location.getSpeed() * 3.6) else "—" })
+            Supplier { if (e.fresh() && e.location!!.hasSpeed()) f("%.1f", e.location!!.getSpeed() * 3.6) else "—" })
         row.addView(speed)
         val unit = u.text("  km/h", 17, u.muted)
         row.addView(unit)
@@ -157,13 +157,13 @@ object Screens {
             metric(
                 a,
                 "水平精度估计",
-                Supplier { if (e.fresh() && e.location.hasAccuracy()) f("%.1f", e.location.getAccuracy()) else "—" },
+                Supplier { if (e.fresh() && e.location!!.hasAccuracy()) f("%.1f", e.location!!.getAccuracy()) else "—" },
                 "m · 估计半径，非保证误差"
             ),
             metric(
                 a,
                 "GNSS 高度",
-                Supplier { if (e.fresh() && e.location.hasAltitude()) f("%.1f", e.location.getAltitude()) else "—" },
+                Supplier { if (e.fresh() && e.location!!.hasAltitude()) f("%.1f", e.location!!.getAltitude()) else "—" },
                 "m · WGS84 椭球高"
             )
         )
@@ -206,13 +206,13 @@ object Screens {
         a.bind(
             coord,
             Supplier {
-                if (!e.fresh()) return@bind "等待有效位置…"
+                if (!e.fresh()) return@Supplier "等待有效位置…"
                 val l = e.location
                 var lat = l!!.getLatitude()
                 var lon = l.getLongitude()
                 if (a.gcj()) {
                     val converted = Gcj02.fromWgs84(lat, lon)
-                    if (!converted.converted) return@bind "超出近似转换范围\n请切换到 WGS84"
+                    if (!converted.converted) return@Supplier "超出近似转换范围\n请切换到 WGS84"
                     lat = converted.latitude
                     lon = converted.longitude
                 }
@@ -235,8 +235,8 @@ object Screens {
         a.bind(
             bearing,
             Supplier {
-                if (e.fresh() && e.location.hasBearing())
-                    f("运动方向 %.0f°（真北）", e.location.getBearing())
+                if (e.fresh() && e.location!!.hasBearing())
+                    f("运动方向 %.0f°（真北）", e.location!!.getBearing())
                 else
                     "运动方向暂无 · 不等于手机朝向"
             })
@@ -547,7 +547,7 @@ object Screens {
         chart(a, p, "track", t.id, null, 320)
         u.note(p, "橙点为起点，青绿点为终点。轨迹是相对示意图，不含道路底图；长距离和极地区域可能有投影变形。")
         a.body.addView(p)
-        val live = TrackService.Companion.active != null && TrackService.Companion.active.trackId == t.id
+        val live = TrackService.Companion.active != null && TrackService.Companion.active!!.trackId == t.id
         if (!live) {
             button(a, a.body, "导出 GPX（有效轨迹）", Runnable { a.export(t, false) })
             button(a, a.body, "导出 KML（Google Earth / 我的地图）", Runnable { a.export(t, TrackExport.KML) })
@@ -589,8 +589,8 @@ object Screens {
                         ("直线距离 "
                                 + Geo.meters(
                             Geo.distance(
-                                a.e.location.getLatitude(),
-                                a.e.location.getLongitude(),
+                                a.e.location!!.getLatitude(),
+                                a.e.location!!.getLongitude(),
                                 p.lat,
                                 p.lon
                             )
@@ -675,8 +675,8 @@ object Screens {
                     if (a.e.fresh())
                         Geo.meters(
                             Geo.distance(
-                                a.e.location.getLatitude(),
-                                a.e.location.getLongitude(),
+                                a.e.location!!.getLatitude(),
+                                a.e.location!!.getLongitude(),
                                 target!!.lat,
                                 target.lon
                             )
@@ -694,8 +694,8 @@ object Screens {
                         f(
                             "目标真北方位 %.0f°",
                             Geo.bearing(
-                                a.e.location.getLatitude(),
-                                a.e.location.getLongitude(),
+                                a.e.location!!.getLatitude(),
+                                a.e.location!!.getLongitude(),
                                 target!!.lat,
                                 target.lon
                             )
@@ -727,11 +727,11 @@ object Screens {
             speed,
             Supplier {
                 if (a.e.fresh()
-                    && a.e.location.hasSpeed()
-                    && Float.isFinite(a.e.location.getSpeed())
-                    && a.e.location.getSpeed() >= 0
+                    && a.e.location!!.hasSpeed()
+                    && Float.isFinite(a.e.location!!.getSpeed())
+                    && a.e.location!!.getSpeed() >= 0
                 )
-                    f("%.1f", a.e.location.getSpeed() * 3.6)
+                    f("%.1f", a.e.location!!.getSpeed() * 3.6)
                 else
                     "—"
             })
@@ -747,11 +747,11 @@ object Screens {
             metres,
             Supplier {
                 if (a.e.fresh()
-                    && a.e.location.hasSpeed()
-                    && Float.isFinite(a.e.location.getSpeed())
-                    && a.e.location.getSpeed() >= 0
+                    && a.e.location!!.hasSpeed()
+                    && Float.isFinite(a.e.location!!.getSpeed())
+                    && a.e.location!!.getSpeed() >= 0
                 )
-                    f("%.2f m/s", a.e.location.getSpeed())
+                    f("%.2f m/s", a.e.location!!.getSpeed())
                 else
                     "— m/s"
             })
@@ -764,7 +764,7 @@ object Screens {
             statistics,
             Supplier {
                 val s = a.speedStats()
-                if (s == null) return@bind "本次测速 · 等待进入"
+                if (s == null) return@Supplier "本次测速 · 等待进入"
                 val max = if (java.lang.Double.isFinite(s.maxMps)) f("%.1f km/h", s.maxMps * 3.6) else "—"
                 val avg = if (java.lang.Double.isFinite(s.averageMps)) f("%.1f km/h", s.averageMps * 3.6) else "—"
                 ((if (s.validPoints == 0) "本次测速 · 等待有效定位" else "本次测速 · 自动统计中")
@@ -822,9 +822,9 @@ object Screens {
                         + "\n数据年龄  "
                         + (if (a.e.location == null) "无位置" else (a.e.age() / 1000).toString() + " 秒")
                         + "\n当前提供器  "
-                        + (if (a.e.location == null) "—" else a.e.location.getProvider())
+                        + (if (a.e.location == null) "—" else a.e.location!!.getProvider())
                         + "\n模拟位置  "
-                        + (if (a.e.location == null) "—" else if (a.e.location.isMock()) "是" else "否")
+                        + (if (a.e.location == null) "—" else if (a.e.location!!.isMock()) "是" else "否")
                         + "\n卫星信号记录  "
                         + a.e.currentSatellites().size
                         + " 条\n频率字段  "

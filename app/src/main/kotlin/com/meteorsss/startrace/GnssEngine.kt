@@ -3,10 +3,10 @@ package com.meteorsss.startrace
 import android.Manifest
 import android.content.pm.PackageManager
 import android.hardware.*
-import android.location.GnssStatus
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
+import android.location!!.GnssStatus
+import android.location!!.Location
+import android.location!!.LocationListener
+import android.location!!.LocationManager
 import android.os.Looper
 import android.os.SystemClock
 import android.view.Surface
@@ -32,7 +32,7 @@ class GnssEngine(private val app: App) : LocationListener, SensorEventListener {
 
     private val manager: LocationManager
     private val sensors: SensorManager
-    private val observers: MutableSet<Observer>? = HashSet<Observer>()
+    private val observers: MutableSet<Observer> = HashSet<Observer>()
     private var visible = false
     private var recording = false
     private var registered = false
@@ -45,9 +45,9 @@ class GnssEngine(private val app: App) : LocationListener, SensorEventListener {
     private var declination = 0f
     var orientationAt: Long = 0
     var statusRegistered: Boolean = false
-    private var satelliteStats: SatelliteStats.Snapshot = SatelliteStats.of(mutableListOf<Signal?>())
+    private var satelliteStats: SatelliteStats.Snapshot = SatelliteStats.of(mutableListOf<Signal>())
     var location: Location? = null
-    var satellites: MutableList<Satellite?>? = ArrayList<Satellite?>()
+    var satellites: MutableList<Satellite> = ArrayList<Satellite>()
     var started: Long = 0
     var firstFix: Long = -1
     var satelliteAt: Long = 0
@@ -164,7 +164,7 @@ class GnssEngine(private val app: App) : LocationListener, SensorEventListener {
             manager.removeUpdates(this)
             manager.unregisterGnssStatusCallback(callback)
             registered = false
-            satellites = ArrayList<Satellite?>()
+            satellites = ArrayList<Satellite>()
             satelliteAt = 0
             statusRegistered = false
             satelliteStats = EMPTY_STATS
@@ -179,7 +179,7 @@ class GnssEngine(private val app: App) : LocationListener, SensorEventListener {
         }
 
         override fun onStopped() {
-            satellites = ArrayList<Satellite?>()
+            satellites = ArrayList<Satellite>()
             satelliteAt = 0
             satelliteStats = EMPTY_STATS
             notifyChanged()
@@ -212,12 +212,12 @@ class GnssEngine(private val app: App) : LocationListener, SensorEventListener {
             if (s.hasFrequency) s.frequency = status.getCarrierFrequencyHz(i)
             list.add(s)
         }
-        list.sort(Comparator { a: Satellite?, b: Satellite? -> java.lang.Float.compare(b!!.cn0, a!!.cn0) })
+        list.sortWith(Comparator { a: Satellite, b: Satellite? -> java.lang.Float.compare(b!!.cn0, a!!.cn0) })
         acceptSatelliteSnapshot(list)
     }
 
-    fun acceptSatelliteSnapshot(list: MutableList<Satellite>?) {
-        satellites = Collections.unmodifiableList<Satellite?>(ArrayList<Satellite?>(list))
+    fun acceptSatelliteSnapshot(list: MutableList<Satellite>) {
+        satellites = Collections.unmodifiableList<Satellite>(ArrayList<Satellite>(list))
         satelliteStats = SatelliteStats.of(satellites)
         satelliteAt = SystemClock.elapsedRealtime()
         notifyChanged()
@@ -229,8 +229,8 @@ class GnssEngine(private val app: App) : LocationListener, SensorEventListener {
                 && satelliteAt > 0 && SystemClock.elapsedRealtime() - satelliteAt <= 15000
     }
 
-    fun currentSatellites(): MutableList<Satellite?>? {
-        return if (satelliteDataFresh()) satellites else mutableListOf<Satellite?>()
+    fun currentSatellites(): MutableList<Satellite> {
+        return if (satelliteDataFresh()) satellites else mutableListOf<Satellite>()
     }
 
     fun satelliteStats(): SatelliteStats.Snapshot {
@@ -258,14 +258,14 @@ class GnssEngine(private val app: App) : LocationListener, SensorEventListener {
         notifyChanged()
     }
 
-    override fun onProviderEnabled(provider: String?) {
+    override fun onProviderEnabled(provider: String) {
         problem = ""
         notifyChanged()
     }
 
-    override fun onProviderDisabled(provider: String?) {
+    override fun onProviderDisabled(provider: String) {
         location = null
-        satellites = ArrayList<Satellite?>()
+        satellites = ArrayList<Satellite>()
         problem = "系统卫星定位已关闭"
         notifyChanged()
     }
@@ -308,7 +308,7 @@ class GnssEngine(private val app: App) : LocationListener, SensorEventListener {
     }
 
     companion object {
-        private val EMPTY_STATS: SatelliteStats.Snapshot = SatelliteStats.of(mutableListOf<Signal?>())
+        private val EMPTY_STATS: SatelliteStats.Snapshot = SatelliteStats.of(mutableListOf<Signal>())
         fun systemName(system: Int): String {
             when (system) {
                 GnssStatus.CONSTELLATION_GPS -> return "GPS"
