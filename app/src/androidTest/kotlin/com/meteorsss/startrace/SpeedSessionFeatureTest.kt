@@ -55,8 +55,8 @@ class SpeedSessionFeatureTest {
         return location
     }
 
-    private fun enter(scenario: ActivityScenario<MainActivity?>) {
-        scenario.onActivity(ActivityAction { a: MainActivity? ->
+    private fun enter(scenario: ActivityScenario<MainActivity>) {
+        scenario.onActivity(ActivityAction { a: MainActivity ->
             // These tests deliver synthetic fixes through the production callback; do not mix in the
             // emulator GPS provider's own stationary coordinates while exercising realistic jump filters.
             a!!.getSystemService<LocationManager?>(LocationManager::class.java)!!.removeUpdates(a.e)
@@ -66,14 +66,14 @@ class SpeedSessionFeatureTest {
         })
     }
 
-    private fun sample(scenario: ActivityScenario<MainActivity?>, latitude: Double, speed: Float) {
+    private fun sample(scenario: ActivityScenario<MainActivity>, latitude: Double, speed: Float) {
         // Activity recreation/resume may have registered the provider again; isolate each fixture.
         scenario.onActivity(
-            ActivityAction { a: MainActivity? ->
+            ActivityAction { a: MainActivity ->
                 a!!.getSystemService<LocationManager?>(LocationManager::class.java)!!.removeUpdates(a.e)
             })
         SystemClock.sleep(1050)
-        scenario.onActivity(ActivityAction { a: MainActivity? ->
+        scenario.onActivity(ActivityAction { a: MainActivity ->
             a!!.e.onLocationChanged(fix(latitude, speed))
             a.refresh()
         })
@@ -104,12 +104,12 @@ class SpeedSessionFeatureTest {
         val tracks = app.store.tracks().size
         Assert.assertNull(TrackService.Companion.active)
         try {
-            ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
+            ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
                 enter(scenario)
                 sample(scenario, 31.0, 3f)
                 sample(scenario, 31.00004, 5f)
                 sample(scenario, 31.00008, 4f)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     val s = a!!.speedStats()
                     Assert.assertTrue(s!!.validPoints >= 3)
                     Assert.assertTrue(s.distance > 0)
@@ -139,17 +139,17 @@ class SpeedSessionFeatureTest {
     @Test
     fun backAndTabNavigationClearAndReentryStartsAtZero() {
         try {
-            ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
+            ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
                 enter(scenario)
                 sample(scenario, 31.0, 4f)
                 sample(scenario, 31.00004, 4f)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertTrue(a!!.speedStats().distance > 0)
                     a.navigate("")
                     Assert.assertNull(a.speedStats())
                 })
                 enter(scenario)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertEquals(0.0, a!!.speedStats().distance, 0.0)
                     Assert.assertEquals(0, a.speedStats().validPoints.toLong())
                     Assert.assertTrue(java.lang.Double.isNaN(a.speedStats().maxMps))
@@ -158,7 +158,7 @@ class SpeedSessionFeatureTest {
                 })
                 enter(scenario)
                 sample(scenario, 32.0, 2f)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertEquals(2.0, a!!.speedStats().maxMps, 0.0)
                     Assert.assertEquals(0.0, a.speedStats().distance, 0.0)
                 })
@@ -172,13 +172,13 @@ class SpeedSessionFeatureTest {
     fun recreationAndBackgroundDoNotResetOrConnectHiddenMovement() {
         val distance = doubleArrayOf(0.0)
         try {
-            ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
+            ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
                 enter(scenario)
                 sample(scenario, 31.0, 4f)
                 sample(scenario, 31.00004, 4f)
-                scenario.onActivity(ActivityAction { a: MainActivity? -> distance[0] = a!!.speedStats().distance })
+                scenario.onActivity(ActivityAction { a: MainActivity -> distance[0] = a!!.speedStats().distance })
                 scenario.recreate()
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertEquals(distance[0], a!!.speedStats().distance, .001)
                     Assert.assertEquals(4.0, a.speedStats().maxMps, 0.0)
                     a.theme()
@@ -190,7 +190,7 @@ class SpeedSessionFeatureTest {
                     .runOnMainSync(Runnable { app().engine.onLocationChanged(fix(32.0, 40f)) })
                 scenario.moveToState(Lifecycle.State.RESUMED)
                 sample(scenario, 32.00004, 2f)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertEquals(distance[0], a!!.speedStats().distance, .001)
                     Assert.assertEquals(4.0, a.speedStats().maxMps, 0.0)
                     a.navigate("")
@@ -205,10 +205,10 @@ class SpeedSessionFeatureTest {
     @Test
     fun mockAndInvalidFixesCannotCreateSessionStatistics() {
         try {
-            ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
+            ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
                 enter(scenario)
                 SystemClock.sleep(50)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     val mock = fix(31.0, 50f)
                     mock.setMock(true)
                     a!!.e.onLocationChanged(mock)
@@ -217,7 +217,7 @@ class SpeedSessionFeatureTest {
                     Assert.assertTrue(java.lang.Double.isNaN(a.speedStats().maxMps))
                 })
                 SystemClock.sleep(50)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     val poor = fix(31.0, 40f)
                     poor.setAccuracy(1000f)
                     a!!.e.onLocationChanged(poor)
@@ -226,7 +226,7 @@ class SpeedSessionFeatureTest {
                     Assert.assertEquals(0.0, a.speedStats().distance, 0.0)
                 })
                 sample(scenario, 31.00004, 3f)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertEquals(3.0, a!!.speedStats().maxMps, 0.0)
                     Assert.assertEquals(0.0, a.speedStats().distance, 0.0)
                 })

@@ -62,11 +62,11 @@ class TrackStatsPanel(context: Context?, u: Ui, private val trackId: Long) : Lin
         })
     }
 
-    fun valuesForTests(): String? {
+    fun valuesForTests(): String {
         return values.getText().toString()
     }
 
-    private fun number(n: Double, suffix: String): String? {
+    private fun number(n: Double, suffix: String): String {
         return if (java.lang.Double.isFinite(n)) String.format(Locale.US, "%.1f%s", n, suffix) else "—"
     }
 

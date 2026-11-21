@@ -9,7 +9,7 @@ android {
         applicationId 'com.meteorsss.startrace'
         minSdk 33
         targetSdk 36
-        versionCode = Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+        versionCode = Integer.parseInt(System.getenv('STARTRACE_VERSION_CODE') ?: (100000 + Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')).toString())
         versionName '0.2.3-pr'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }

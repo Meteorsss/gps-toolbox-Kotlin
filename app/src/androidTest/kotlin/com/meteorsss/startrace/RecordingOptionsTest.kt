@@ -55,12 +55,12 @@ class RecordingOptionsTest {
     }
 
     private fun awaitTheme(
-        scenario: ActivityScenario<MainActivity?>, light: Boolean, systemDark: Boolean
+        scenario: ActivityScenario<MainActivity>, light: Boolean, systemDark: Boolean
     ) {
         val end = SystemClock.elapsedRealtime() + 15000
         val matches = booleanArrayOf(false)
         while (SystemClock.elapsedRealtime() < end) {
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 matches[0] =
                     a!!.u.light == light && (((a.getResources().getConfiguration().uiMode
                             and Configuration.UI_MODE_NIGHT_MASK)
@@ -148,8 +148,8 @@ class RecordingOptionsTest {
         val previous: TrackService? = TrackService.Companion.active
         val live = TrackService()
         try {
-            ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+            ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     live.prepareForTests(app, id)
                     live.distance = 1234.0
                     live.paused = true
@@ -196,9 +196,9 @@ class RecordingOptionsTest {
         val saved = Preferences.theme(app)
         val originalNight = app.getSystemService<UiModeManager?>(UiModeManager::class.java)!!.getNightMode()
         try {
-            ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
+            ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
                 for (mode in ThemeMode.entries) {
-                    scenario.onActivity(ActivityAction { a: MainActivity? ->
+                    scenario.onActivity(ActivityAction { a: MainActivity ->
                         Preferences.theme(a, mode)
                         a!!.buildRoot()
                         a.navigate("settings")
@@ -207,7 +207,7 @@ class RecordingOptionsTest {
                         Assert.assertEquals(Preferences.light(a), a.u.light)
                     })
                     scenario.recreate()
-                    scenario.onActivity(ActivityAction { a: MainActivity? ->
+                    scenario.onActivity(ActivityAction { a: MainActivity ->
                         Assert.assertEquals(mode, Preferences.theme(a))
                         Assert.assertEquals(Preferences.light(a), a!!.u.light)
                     })
@@ -216,7 +216,7 @@ class RecordingOptionsTest {
                 awaitTheme(scenario, false, true)
                 shell("cmd uimode night no")
                 awaitTheme(scenario, true, false)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Preferences.theme(a, ThemeMode.DARK)
                     a!!.buildRoot()
                 })
@@ -224,13 +224,13 @@ class RecordingOptionsTest {
                 awaitTheme(scenario, false, true)
                 shell("cmd uimode night no")
                 awaitTheme(scenario, false, false)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Preferences.theme(a, ThemeMode.LIGHT)
                     a!!.buildRoot()
                 })
                 shell("cmd uimode night yes")
                 awaitTheme(scenario, true, true)
-                scenario.onActivity(ActivityAction { a: MainActivity? -> a!!.navigate("settings") })
+                scenario.onActivity(ActivityAction { a: MainActivity -> a!!.navigate("settings") })
                 shot("three-mode-settings")
             }
         } finally {
@@ -251,10 +251,10 @@ class RecordingOptionsTest {
         try {
             for (mode in ThemeMode.entries) {
                 Preferences.theme(app, mode)
-                ActivityScenario.launch<MapActivity?>(
+                ActivityScenario.launch<MapActivity>(
                     Intent(app, MapActivity::class.java).putExtra("test_local_style", true)
                 ).use { scenario ->
-                    scenario.onActivity(ActivityAction { a: MapActivity? ->
+                    scenario.onActivity(ActivityAction { a: MapActivity ->
                         Assert.assertEquals(
                             Preferences.light(a),
                             a!!.lightForTests()

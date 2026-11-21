@@ -639,7 +639,7 @@ class MapActivity : Activity() {
         )
     }
 
-    private fun format(n: Double, unit: String): String? {
+    private fun format(n: Double, unit: String): String {
         return if (java.lang.Double.isFinite(n)) String.format(Locale.US, "%.1f%s", n, unit) else "—"
     }
 
@@ -800,7 +800,7 @@ class MapActivity : Activity() {
         return following && requestedTrack < 0
     }
 
-    fun statisticsForTests(): String? {
+    fun statisticsForTests(): String {
         return if (statisticsPanel == null) "" else statisticsPanel!!.valuesForTests()
     }
 

@@ -6,7 +6,7 @@ import java.util.*
 import kotlin.String
 
 object Gpx {
-    fun escape(s: String): String? {
+    fun escape(s: String): String {
         return s.replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
@@ -23,7 +23,7 @@ object Gpx {
                 + "</name>\n")
     }
 
-    fun point(p: TrackPoint): String? {
+    fun point(p: TrackPoint): String {
         val altitude: String? =
             if (Double.isFinite(p.altitude)) String.format(
                 Locale.US,

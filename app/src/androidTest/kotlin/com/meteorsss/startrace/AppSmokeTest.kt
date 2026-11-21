@@ -64,39 +64,39 @@ class AppSmokeTest {
     @Test
     @Throws(Exception::class)
     fun allPagesAndBothThemesRender() {
-        ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+        ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 Preferences.theme(a, ThemeMode.DARK)
                 a!!.buildRoot()
             })
             val expected: Array<String>? = arrayOf<String>("此刻，在哪里", "头顶的卫星", "把走过的路留下", "随手可用")
             for (i in 0..3) {
                 val page = i
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     a!!.goPage(page)
                     Assert.assertTrue(a.visibleText().contains(expected!![page]!!))
                 })
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 screenshot("dark-" + i)
             }
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 a!!.goPage(3)
                 a.navigate("compass")
             })
-            awaitActivity(scenario, Predicate { a: MainActivity? -> a!!.hasWindowFocus() }, "compass window focus")
+            awaitActivity(scenario, Predicate { a: MainActivity -> a!!.hasWindowFocus() }, "compass window focus")
             shell("input keyevent 4")
-            awaitActivity(scenario, Predicate { a: MainActivity? -> a!!.mode.isEmpty() }, "predictive back completes")
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+            awaitActivity(scenario, Predicate { a: MainActivity -> a!!.mode.isEmpty() }, "predictive back completes")
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 Assert.assertEquals("", a!!.mode)
                 Assert.assertTrue(a.visibleText().contains("随手可用"))
             })
             val modes: Array<String>? = arrayOf<String>("settings", "places", "compass", "speed", "diagnostics")
             for (mode in modes!!) {
-                scenario.onActivity(ActivityAction { a: MainActivity? -> a!!.navigate(mode) })
+                scenario.onActivity(ActivityAction { a: MainActivity -> a!!.navigate(mode) })
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 screenshot(mode!!)
             }
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 a!!.goPage(0)
                 a.theme()
                 Assert.assertTrue(a.u.light)
@@ -104,7 +104,7 @@ class AppSmokeTest {
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             screenshot("light-home")
             scenario.recreate()
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 Assert.assertTrue(a!!.u.light)
                 a.theme()
             })
@@ -157,9 +157,9 @@ class AppSmokeTest {
         shell("cmd location set-location-enabled true")
         val id = longArrayOf(-1)
         try {
-            ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
+            ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
                 scenario.onActivity(
-                    ActivityAction { a: MainActivity? ->
+                    ActivityAction { a: MainActivity ->
                         a!!.startForegroundService(
                             Intent(
                                 a,
@@ -168,24 +168,24 @@ class AppSmokeTest {
                         )
                     })
                 SystemClock.sleep(1500)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertNotNull(TrackService.Companion.active)
                     id[0] = TrackService.Companion.active!!.trackId
                     Assert.assertTrue(id[0] > 0)
                     a!!.startService(Intent(a, TrackService::class.java).setAction("PAUSE"))
                 })
                 SystemClock.sleep(500)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertTrue(TrackService.Companion.active!!.paused)
                     a!!.startService(Intent(a, TrackService::class.java).setAction("RESUME"))
                 })
                 SystemClock.sleep(500)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertFalse(TrackService.Companion.active!!.paused)
                     a!!.startService(Intent(a, TrackService::class.java).setAction("STOP"))
                 })
                 SystemClock.sleep(500)
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertNull(TrackService.Companion.active)
                     Assert.assertEquals("finished", a!!.app.store.track(id[0]).status)
                     a.app.store.delete(id[0])
@@ -206,12 +206,12 @@ class AppSmokeTest {
         shell("cmd location set-location-enabled true")
     }
 
-    private fun <T : View?> find(view: View?, type: Class<T?>): T? {
+    private fun <T : View> find(view: View?, type: Class<T>): T? {
         if (type.isInstance(view)) return type.cast(view)
         if (view is ViewGroup) {
             val group = view
             for (i in 0..<group.getChildCount()) {
-                val child = find<T?>(group.getChildAt(i), type)
+                val child = find<T>(group.getChildAt(i), type)
                 if (child != null) return child
             }
         }
@@ -237,23 +237,23 @@ class AppSmokeTest {
     @Test
     @Throws(Exception::class)
     fun compassFramesAreIndependentAndStopWhenHidden() {
-        ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
+        ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
             val view: Array<CompassView?>? = arrayOf<CompassView?>(null)
             val before: LongArray? = longArrayOf(0)
             val after: LongArray? = longArrayOf(0)
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 a!!.navigate("compass")
                 view!![0] = find<CompassView?>(a.body, CompassView::class.java)
                 Assert.assertNotNull(view[0])
                 Assert.assertNotEquals(View.LAYER_TYPE_SOFTWARE.toLong(), view[0]!!.getLayerType().toLong())
             })
             SystemClock.sleep(300)
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 Assert.assertTrue(view!![0]!!.hasScheduledFrame())
                 before!![0] = view[0]!!.renderedFrames()
             })
             SystemClock.sleep(1200)
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 after!![0] = view!![0]!!.renderedFrames()
                 Assert.assertTrue(
                     "Compass must redraw independently of 2Hz page tick", after[0] - before!![0] >= 12
@@ -276,7 +276,7 @@ class AppSmokeTest {
             InstrumentationRegistry.getInstrumentation()
                 .runOnMainSync(Runnable { Assert.assertEquals(before[0], view!![0]!!.renderedFrames()) })
             scenario.moveToState(Lifecycle.State.RESUMED)
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 Assert.assertTrue(view!![0]!!.hasScheduledFrame())
                 a!!.goPage(0)
                 Assert.assertFalse(view[0]!!.hasScheduledFrame())
@@ -289,8 +289,8 @@ class AppSmokeTest {
     @Throws(Exception::class)
     fun dashboardCoordinateSystemsAndSatelliteBreakdown() {
         grantLocation()
-        ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+        ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 val l = Location("gps")
                 l.setLatitude(39.911954)
                 l.setLongitude(116.377817)
@@ -310,16 +310,16 @@ class AppSmokeTest {
             })
             awaitActivity(
                 scenario,
-                Predicate { a: MainActivity? -> a!!.hasWindowFocus() },
+                Predicate { a: MainActivity -> a!!.hasWindowFocus() },
                 "clipboard requires foreground window focus"
             )
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 a!!.e.location!!.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos())
                 a.copyHere()
             })
             awaitActivity(
                 scenario,
-                Predicate { a: MainActivity? ->
+                Predicate { a: MainActivity ->
                     val cb =
                         a!!.getSystemService<ClipboardManager>(ClipboardManager::class.java)
                     cb!!.hasPrimaryClip()
@@ -330,7 +330,7 @@ class AppSmokeTest {
             )
             screenshot("gcj02-dashboard")
             scenario.recreate()
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 Assert.assertTrue(a!!.gcj())
                 a.setCoordinateSystem(false)
                 val entries: MutableList<Satellite> = ArrayList<Satellite>()
@@ -360,19 +360,19 @@ class AppSmokeTest {
                 Assert.assertTrue(a.visibleText().contains("全部频率信号明细"))
             })
             screenshot("satellite-breakdown-fixture")
-            scenario.onActivity(ActivityAction { a: MainActivity? -> a!!.e.acceptSatelliteSnapshot(mutableListOf<Satellite>()) })
+            scenario.onActivity(ActivityAction { a: MainActivity -> a!!.e.acceptSatelliteSnapshot(mutableListOf<Satellite>()) })
         }
     }
 
     private fun awaitActivity(
-        scenario: ActivityScenario<MainActivity?>,
-        check: Predicate<MainActivity?>,
+        scenario: ActivityScenario<MainActivity>,
+        check: Predicate<MainActivity>,
         message: String
     ) {
         val deadline = SystemClock.elapsedRealtime() + 10000
         val ready = booleanArrayOf(false)
         while (SystemClock.elapsedRealtime() < deadline) {
-            scenario.onActivity(ActivityAction { a: MainActivity? -> ready[0] = check.test(a) })
+            scenario.onActivity(ActivityAction { a: MainActivity -> ready[0] = check.test(a) })
             if (ready[0]) return
             SystemClock.sleep(50)
         }
@@ -387,8 +387,8 @@ class AppSmokeTest {
         val dialog = arrayOf<AlertDialog?>(null)
         val original = arrayOf<Place>(null)
         try {
-            ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+            ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     id[0] = a!!.app.store.savePlace("旧名称", "旧备注", 31.23, 121.47)
                     original[0] =
                         a.app.store.places().stream().filter { x: Place? -> x!!.id == id[0] }.findFirst().get()
@@ -399,19 +399,19 @@ class AppSmokeTest {
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 awaitActivity(
                     scenario,
-                    Predicate { a: MainActivity? -> dialog[0]!!.getWindow()!!.getDecorView().hasWindowFocus() },
+                    Predicate { a: MainActivity -> dialog[0]!!.getWindow()!!.getDecorView().hasWindowFocus() },
                     "edit dialog displayed"
                 )
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     field(dialog[0]!!.getWindow()!!.getDecorView(), "地点名称")!!.setText("未保存")
                     dialog[0]!!.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
                 })
                 awaitActivity(
                     scenario,
-                    Predicate { a: MainActivity? -> !dialog[0]!!.isShowing() },
+                    Predicate { a: MainActivity -> !dialog[0]!!.isShowing() },
                     "cancel dialog closes"
                 )
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertEquals(
                         "旧名称",
                         a!!.app.store.places().stream().filter { x: Place? -> x!!.id == id[0] }.findFirst().get().name
@@ -421,15 +421,15 @@ class AppSmokeTest {
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 awaitActivity(
                     scenario,
-                    Predicate { a: MainActivity? -> dialog[0]!!.getWindow()!!.getDecorView().hasWindowFocus() },
+                    Predicate { a: MainActivity -> dialog[0]!!.getWindow()!!.getDecorView().hasWindowFocus() },
                     "second edit dialog displayed"
                 )
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     field(dialog[0]!!.getWindow()!!.getDecorView(), "地点名称")!!.setText("   ")
                     dialog[0]!!.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
                 })
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertTrue(dialog[0]!!.isShowing())
                     Assert.assertNotNull(field(dialog[0]!!.getWindow()!!.getDecorView(), "地点名称")!!.getError())
                     field(dialog[0]!!.getWindow()!!.getDecorView(), "地点名称")!!.setText(" 停车点 ")
@@ -438,10 +438,10 @@ class AppSmokeTest {
                 })
                 awaitActivity(
                     scenario,
-                    Predicate { a: MainActivity? -> !dialog[0]!!.isShowing() },
+                    Predicate { a: MainActivity -> !dialog[0]!!.isShowing() },
                     "save dialog closes"
                 )
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     val saved: Place? =
                         a!!.app.store.places().stream().filter { x: Place -> x.id == id[0] }.findFirst().get()
                     Assert.assertEquals("停车点", saved!!.name)
@@ -459,7 +459,7 @@ class AppSmokeTest {
                 })
                 screenshot("edited-place")
                 scenario.recreate()
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     val saved: Place? =
                         a!!.app.store.places().stream().filter { x: Place -> x.id == id[0] }.findFirst().get()
                     a.app.store.updatePlace(saved!!.id, saved.name, "")
@@ -484,8 +484,8 @@ class AppSmokeTest {
     @Throws(Exception::class)
     fun realGnssStatusCallbackPreservesMultiFrequencyEntries() {
         grantLocation()
-        ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
-            scenario.onActivity(ActivityAction { a: MainActivity? ->
+        ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
+            scenario.onActivity(ActivityAction { a: MainActivity ->
                 val builder = GnssStatus.Builder()
                 val systems: IntArray? = intArrayOf(4, 4, 4, 4, 5, 5, 5)
                 val ids: IntArray? = intArrayOf(194, 194, 195, 195, 6, 6, 6)

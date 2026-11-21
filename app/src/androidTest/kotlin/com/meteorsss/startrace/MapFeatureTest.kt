@@ -32,19 +32,19 @@ import kotlin.use
 
 @RunWith(AndroidJUnit4::class)
 class MapFeatureTest {
-    private fun context(): Context? {
+    private fun context(): Context {
         return InstrumentationRegistry.getInstrumentation().getTargetContext()
     }
 
     private fun await(
-        scenario: ActivityScenario<MapActivity?>,
-        check: Predicate<MapActivity?>,
+        scenario: ActivityScenario<MapActivity>,
+        check: Predicate<MapActivity>,
         label: String
     ) {
         val deadline = SystemClock.elapsedRealtime() + 45000
         val ready = booleanArrayOf(false)
         while (SystemClock.elapsedRealtime() < deadline) {
-            scenario.onActivity(ActivityAction { a: MapActivity? -> ready[0] = check.test(a) })
+            scenario.onActivity(ActivityAction { a: MapActivity -> ready[0] = check.test(a) })
             if (ready[0]) return
             SystemClock.sleep(100)
         }
@@ -140,26 +140,26 @@ class MapFeatureTest {
         Assert.assertFalse(MapPolicy.allowed(context()))
         val id = fixture()
         try {
-            ActivityScenario.launch<MapActivity?>(
+            ActivityScenario.launch<MapActivity>(
                 Intent(context(), MapActivity::class.java)
                     .putExtra("track_id", id)
                     .putExtra("test_local_style", true)
             ).use { scenario ->
                 await(
                     scenario,
-                    Predicate { a: MapActivity? -> a!!.readyForTests() && a.trackPointsForTests() == 20 },
+                    Predicate { a: MapActivity -> a!!.readyForTests() && a.trackPointsForTests() == 20 },
                     "local map and track ready"
                 )
-                scenario.onActivity(ActivityAction { a: MapActivity? ->
+                scenario.onActivity(ActivityAction { a: MapActivity ->
                     Assert.assertFalse(a!!.onlineForTests())
                     Assert.assertEquals(2, a.trackSegmentsForTests().toLong())
                 })
                 shot("map-local-track")
-                scenario.onActivity(ActivityAction { a: MapActivity? -> Assert.assertTrue(a!!.cameraZoomForTests() > 3) })
+                scenario.onActivity(ActivityAction { a: MapActivity -> Assert.assertTrue(a!!.cameraZoomForTests() > 3) })
                 scenario.recreate()
                 await(
                     scenario,
-                    Predicate { a: MapActivity? -> a!!.readyForTests() && a.trackPointsForTests() == 20 && a.cameraZoomForTests() > 3 },
+                    Predicate { a: MapActivity -> a!!.readyForTests() && a.trackPointsForTests() == 20 && a.cameraZoomForTests() > 3 },
                     "recreated map retains camera"
                 )
                 scenario.moveToState(Lifecycle.State.CREATED)
@@ -218,17 +218,17 @@ class MapFeatureTest {
         MapPolicy.allow(context(), false)
         val id = fixture()
         try {
-            ActivityScenario.launch<MapActivity?>(
+            ActivityScenario.launch<MapActivity>(
                 Intent(context(), MapActivity::class.java)
                     .putExtra("track_id", id)
                     .putExtra("test_local_style", true)
             ).use { scenario ->
                 await(
                     scenario,
-                    Predicate { a: MapActivity? -> a!!.readyForTests() && a.trackPointsForTests() == 20 },
+                    Predicate { a: MapActivity -> a!!.readyForTests() && a.trackPointsForTests() == 20 },
                     "historical map"
                 )
-                scenario.onActivity(ActivityAction { a: MapActivity? ->
+                scenario.onActivity(ActivityAction { a: MapActivity ->
                     Assert.assertFalse(a!!.followingForTests())
                     val recenter = button(a.getWindow().getDecorView(), "回到当前位置")
                     Assert.assertNotNull(recenter)
@@ -238,13 +238,13 @@ class MapFeatureTest {
                 scenario.recreate()
                 await(
                     scenario,
-                    Predicate { a: MapActivity? -> a!!.readyForTests() && a.trackPointsForTests() == 20 },
+                    Predicate { a: MapActivity -> a!!.readyForTests() && a.trackPointsForTests() == 20 },
                     "recentered map recreated"
                 )
-                scenario.onActivity(ActivityAction { a: MapActivity? -> Assert.assertTrue(a!!.followingForTests()) })
+                scenario.onActivity(ActivityAction { a: MapActivity -> Assert.assertTrue(a!!.followingForTests()) })
                 scenario.moveToState(Lifecycle.State.CREATED)
                 scenario.moveToState(Lifecycle.State.RESUMED)
-                scenario.onActivity(ActivityAction { a: MapActivity? -> Assert.assertTrue(a!!.followingForTests()) })
+                scenario.onActivity(ActivityAction { a: MapActivity -> Assert.assertTrue(a!!.followingForTests()) })
                 Assert.assertFalse(MapPolicy.allowed(context()))
             }
         } finally {
@@ -265,15 +265,15 @@ class MapFeatureTest {
         live.distance = 100.0
         InstrumentationRegistry.getInstrumentation().runOnMainSync(Runnable { TrackService.Companion.active = live })
         try {
-            ActivityScenario.launch<MapActivity?>(
+            ActivityScenario.launch<MapActivity>(
                 Intent(context(), MapActivity::class.java).putExtra("test_local_style", true)
             ).use { scenario ->
                 await(
                     scenario,
-                    Predicate { a: MapActivity? -> a!!.readyForTests() && a.trackPointsForTests() == 20 },
+                    Predicate { a: MapActivity -> a!!.readyForTests() && a.trackPointsForTests() == 20 },
                     "live map"
                 )
-                scenario.onActivity(ActivityAction { a: MapActivity? ->
+                scenario.onActivity(ActivityAction { a: MapActivity ->
                     val statistics = button(a!!.getWindow().getDecorView(), "详细统计")
                     Assert.assertNotNull(statistics)
                     statistics!!.performClick()
@@ -282,7 +282,7 @@ class MapFeatureTest {
                 })
                 await(
                     scenario,
-                    Predicate { a: MapActivity? -> a!!.statisticsForTests().contains(Geo.meters(200.0)) },
+                    Predicate { a: MapActivity -> a!!.statisticsForTests().contains(Geo.meters(200.0)) },
                     "statistics update without reopening"
                 )
                 scenario.moveToState(Lifecycle.State.CREATED)
@@ -290,20 +290,20 @@ class MapFeatureTest {
                 scenario.moveToState(Lifecycle.State.RESUMED)
                 await(
                     scenario,
-                    Predicate { a: MapActivity? -> a!!.statisticsForTests().contains(Geo.meters(300.0)) },
+                    Predicate { a: MapActivity -> a!!.statisticsForTests().contains(Geo.meters(300.0)) },
                     "statistics refresh on resume"
                 )
                 app.store.update(id, 19000, 450.0, "finished")
-                scenario.onActivity(ActivityAction { a: MapActivity? -> TrackService.Companion.active = null })
+                scenario.onActivity(ActivityAction { a: MapActivity -> TrackService.Companion.active = null })
                 await(
                     scenario,
-                    Predicate { a: MapActivity? -> a!!.statisticsForTests().contains(Geo.meters(450.0)) },
+                    Predicate { a: MapActivity -> a!!.statisticsForTests().contains(Geo.meters(450.0)) },
                     "final persisted statistics"
                 )
-                scenario.onActivity(ActivityAction { obj: MapActivity? -> obj!!.closeStatisticsForTests() })
+                scenario.onActivity(ActivityAction { obj: MapActivity -> obj!!.closeStatisticsForTests() })
                 await(
                     scenario,
-                    Predicate { a: MapActivity? -> a!!.statisticsForTests().isEmpty() },
+                    Predicate { a: MapActivity -> a!!.statisticsForTests().isEmpty() },
                     "statistics dialog dismissed"
                 )
             }
@@ -320,15 +320,15 @@ class MapFeatureTest {
         MapPolicy.allow(context(), true)
         val id = fixture()
         try {
-            ActivityScenario.launch<MapActivity?>(
+            ActivityScenario.launch<MapActivity>(
                 Intent(context(), MapActivity::class.java).putExtra("track_id", id)
             ).use { scenario ->
                 await(
                     scenario,
-                    Predicate { a: MapActivity? -> a!!.readyForTests() && a.trackPointsForTests() == 20 && a.renderedForTests() },
+                    Predicate { a: MapActivity -> a!!.readyForTests() && a.trackPointsForTests() == 20 && a.renderedForTests() },
                     "OpenFreeMap native style rendering"
                 )
-                scenario.onActivity(ActivityAction { a: MapActivity? -> Assert.assertTrue(a!!.onlineForTests()) })
+                scenario.onActivity(ActivityAction { a: MapActivity -> Assert.assertTrue(a!!.onlineForTests()) })
                 shot("map-openfreemap-track")
             }
         } finally {

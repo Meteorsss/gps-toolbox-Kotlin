@@ -10,7 +10,7 @@ import kotlin.math.abs
 object Kml {
     const val NAMESPACE: String = "http://www.opengis.net/kml/2.2"
 
-    fun escape(text: String?): String? {
+    fun escape(text: String?): String {
         val clean: StringBuilder? = StringBuilder()
         if (text == null) return ""
         text.codePoints()
@@ -24,7 +24,7 @@ object Kml {
         return Gpx.escape(clean.toString())
     }
 
-    fun coordinate(p: TrackPoint?): String? {
+    fun coordinate(p: TrackPoint?): String {
         return String.format(Locale.US, "%.8f,%.8f\n", p!!.lon, p.lat)
     }
 

@@ -286,7 +286,7 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
         getWritableDatabase().delete("places", "id=?", arrayOf<String>("" + id))
     }
 
-    private fun optional(value: Double): String? {
+    private fun optional(value: Double): String {
         return if (java.lang.Double.isFinite(value)) value.toString() else ""
     }
 

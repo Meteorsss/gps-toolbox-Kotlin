@@ -18,8 +18,8 @@ class KmlTest {
     }
 
     @Throws(Exception::class)
-    private fun export(name: String, vararg points: TrackPoint?): String {
-        val out: StringWriter? = StringWriter()
+    private fun export(name: String, vararg points: TrackPoint): String {
+        val out = StringWriter()
         val writer = Exporter(out, name)
         for (p in points) writer.add(p)
         writer.finish()
@@ -177,7 +177,7 @@ class KmlTest {
     @Test
     @Throws(Exception::class)
     fun fullTrackIsNotPreviewSampledAndFinishIsIdempotent() {
-        val out: StringWriter? = StringWriter()
+        val out = StringWriter()
         val exporter = Exporter(out, "long")
         for (i in 0..6000) exporter.add(point(31 + i * .000001, 121.0, 1000L * i, 0, true))
         exporter.finish()

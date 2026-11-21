@@ -510,7 +510,7 @@ object Screens {
         }
     }
 
-    private fun date(time: Long): String? {
+    private fun date(time: Long): String {
         return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(Date(time))
     }
 

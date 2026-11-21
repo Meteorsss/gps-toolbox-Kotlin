@@ -28,12 +28,12 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 @RunWith(AndroidJUnit4::class)
 class KmlFeatureTest {
-    private fun context(): Context? {
+    private fun context(): Context {
         return InstrumentationRegistry.getInstrumentation().getTargetContext()
     }
 
     @Throws(Exception::class)
-    private fun parse(file: File): Document? {
+    private fun parse(file: File): Document {
         val factory = DocumentBuilderFactory.newInstance()
         factory!!.setNamespaceAware(true)
         return factory.newDocumentBuilder().parse(file)
@@ -68,8 +68,8 @@ class KmlFeatureTest {
                 )
             }
             app.store.update(id, 5000, 50.0, "finished")
-            ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+            ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     a!!.selectedTrack = id
                     a.navigate("track")
                     Assert.assertTrue(a.visibleText().contains("导出 KML"))
@@ -81,7 +81,7 @@ class KmlFeatureTest {
                 })
                 scenario.recreate()
                 // Exercise the actual save callback after recreation, without relying on DocumentsUI.
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     a!!.onActivityResult(
                         5,
                         Activity.RESULT_OK,
@@ -121,7 +121,7 @@ class KmlFeatureTest {
                 Assert.assertEquals(6, app.store.preview(id, 100).size.toLong())
                 // Cancellation must not keep a stale pending export that later overwrites a file.
                 val length = file.length()
-                scenario.onActivity(ActivityAction { a: MainActivity? ->
+                scenario.onActivity(ActivityAction { a: MainActivity ->
                     a!!.prepareExport(app.store.track(id), TrackExport.KML)
                     a.onActivityResult(5, Activity.RESULT_CANCELED, null)
                     a.onActivityResult(5, Activity.RESULT_OK, Intent().setData(Uri.fromFile(file)))
@@ -181,18 +181,18 @@ class KmlFeatureTest {
     @Test
     @Throws(Exception::class)
     fun dashboardSpeedIsCenteredInBothThemesAndAfterRecreation() {
-        ActivityScenario.launch<MainActivity?>(MainActivity::class.java).use { scenario ->
+        ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
             for (i in 0..1) {
-                scenario.onActivity(ActivityAction { a: MainActivity? -> a!!.goPage(0) })
+                scenario.onActivity(ActivityAction { a: MainActivity -> a!!.goPage(0) })
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 SystemClock.sleep(250)
-                scenario.onActivity(ActivityAction { a: MainActivity? -> this.assertCentered(a!!) })
+                scenario.onActivity(ActivityAction { a: MainActivity -> this.assertCentered(a!!) })
                 screenshot("centered-speed-" + i)
-                scenario.onActivity(ActivityAction { obj: MainActivity? -> obj!!.theme() })
+                scenario.onActivity(ActivityAction { obj: MainActivity -> obj!!.theme() })
             }
             scenario.recreate()
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-            scenario.onActivity(ActivityAction { a: MainActivity? -> this.assertCentered(a!!) })
+            scenario.onActivity(ActivityAction { a: MainActivity -> this.assertCentered(a!!) })
         }
     }
 }

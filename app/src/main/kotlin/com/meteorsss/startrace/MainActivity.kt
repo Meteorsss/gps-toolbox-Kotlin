@@ -436,7 +436,7 @@ class MainActivity : Activity() {
         toast("已复制，坐标系 " + system + "。")
     }
 
-    fun coordinates(l: Location): String? {
+    fun coordinates(l: Location): String {
         return String.format(Locale.US, "%.7f, %.7f", l.getLatitude(), l.getLongitude())
     }
 
@@ -727,7 +727,7 @@ class MainActivity : Activity() {
             .show()
     }
 
-    fun export(t: Track?, raw: Boolean) {
+    fun export(t: Track, raw: Boolean) {
         export(t, if (raw) TrackExport.CSV else TrackExport.GPX)
     }
 
@@ -898,7 +898,7 @@ class MainActivity : Activity() {
     }
 
     fun selectRecordingInterval() {
-        val labels = RecordingCadence.SECONDS.map { "$it 秒 / 点" }.toTypedArray()
+        val labels = RecordingCadence.SECONDS.map { it.toString() + " 秒 / 点" }.toTypedArray()
         var selected = 0
         for (i in RecordingCadence.Companion.SECONDS.indices) if (RecordingCadence.Companion.SECONDS[i] == Preferences.interval(
                 this
@@ -947,7 +947,7 @@ class MainActivity : Activity() {
         )
     }
 
-    fun visibleText(): String? {
+    fun visibleText(): String {
         val text = StringBuilder()
         collect(root, text)
         return text.toString()
