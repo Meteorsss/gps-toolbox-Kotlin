@@ -42,7 +42,7 @@ object Geo {
         return ((v % 360) + 360) % 360
     }
 
-    fun dms(value: Double, latitude: Boolean): String? {
+    fun dms(value: Double, latitude: Boolean): String {
         val cs = Math.round(abs(value) * 360000)
         val deg = cs / 360000
         val min = (cs % 360000) / 6000
@@ -85,11 +85,11 @@ object Geo {
         return r
     }
 
-    fun meters(v: Double): String? {
+    fun meters(v: Double): String {
         return if (v >= 1000) String.format(Locale.US, "%.2f km", v / 1000) else String.format(Locale.US, "%.0f m", v)
     }
 
-    fun duration(millis: Long): String? {
+    fun duration(millis: Long): String {
         val t = max(0, millis / 1000)
         return String.format(Locale.US, "%02d:%02d:%02d", t / 3600, (t / 60) % 60, t % 60)
     }

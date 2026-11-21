@@ -228,7 +228,7 @@ class MainActivity : Activity() {
             speedSession!!.disconnect()
             return
         }
-        val l = e!!.location
+        val l = e.location!!
         speedSession!!.add(
             TrackPoint(
                 l.getLatitude(),

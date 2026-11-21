@@ -49,6 +49,8 @@ jobs:
           with open(os.environ['GITHUB_ENV'],'a') as f:
               f.write(f'SIGNING_STORE_FILE={path}\nSIGNING_PASSWORD={data["password"]}\n')
           PY
+      - name: Verify language and unchanged UI/privacy assets
+        run: python scripts/verify-migration.py
       - name: Unit tests, Android lint and debug compilation
         run: gradle --no-daemon :app:testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Signed preview APK (explicit trusted branch dispatch only)

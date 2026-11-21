@@ -397,11 +397,11 @@ class MapActivity : Activity() {
         val l = app!!.engine.location
         fixStatus!!.setText(
             if (fresh)
-                (if (l.isMock())
+                (if (l!!.isMock())
                     "模拟位置 · 不计入有效轨迹"
                 else
                     ("实时 WGS84 位置 · "
-                            + (if (l.hasAccuracy()) String.format(Locale.US, "精度估计 %.0fm", l.getAccuracy()) else
+                            + (if (l!!.hasAccuracy()) String.format(Locale.US, "精度估计 %.0fm", l!!.getAccuracy()) else
                         "精度未知")))
             else
                 "暂无新鲜位置 · 不显示过期定位点"
@@ -415,12 +415,12 @@ class MapActivity : Activity() {
         setSource(
             "position",
             mutableListOf<Feature>(
-                Feature.fromGeometry(Point.fromLngLat(l.getLongitude(), l.getLatitude()))
+                Feature.fromGeometry(Point.fromLngLat(l!!.getLongitude(), l!!.getLatitude()))
             )
         )
         val ring =
-            if (l.hasAccuracy())
-                TrackGeometry.accuracyRing(l.getLatitude(), l.getLongitude(), l.getAccuracy().toDouble())
+            if (l!!.hasAccuracy())
+                TrackGeometry.accuracyRing(l!!.getLatitude(), l!!.getLongitude(), l!!.getAccuracy().toDouble())
             else mutableListOf<DoubleArray>()
         val coordinates: MutableList<Point?> = ArrayList<Point?>()
         for (p in ring!!) coordinates.add(Point.fromLngLat(p[1], p[0]))
@@ -430,11 +430,11 @@ class MapActivity : Activity() {
                 Feature.fromGeometry(Polygon.fromLngLats(mutableListOf<MutableList<Point?>?>(coordinates)))
             )
         )
-        if (following && requestedTrack < 0 && l.getElapsedRealtimeNanos() != lastFixElapsed) {
-            lastFixElapsed = l.getElapsedRealtimeNanos()
+        if (following && requestedTrack < 0 && l!!.getElapsedRealtimeNanos() != lastFixElapsed) {
+            lastFixElapsed = l!!.getElapsedRealtimeNanos()
             map!!.animateCamera(
                 newLatLngZoom(
-                    LatLng(l.getLatitude(), l.getLongitude()),
+                    LatLng(l!!.getLatitude(), l!!.getLongitude()),
                     max(15.0, map!!.getCameraPosition().zoom)
                 ),
                 500
