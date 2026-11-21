@@ -6,7 +6,10 @@ allprojects { p ->
                     def out = new File(System.getenv('RUNNER_TEMP'), 'migration-libs')
                     out.mkdirs()
                     ['debugCompileClasspath', 'debugUnitTestCompileClasspath', 'debugAndroidTestCompileClasspath'].each { name ->
-                        configurations.getByName(name).resolve().each { f ->
+                        configurations.getByName(name).incoming.artifactView {
+                            lenient = true
+                            componentFilter { it instanceof org.gradle.api.artifacts.component.ModuleComponentIdentifier }
+                        }.files.each { f ->
                             if (f.name.endsWith('.jar') || f.name.endsWith('.aar')) {
                                 java.nio.file.Files.copy(f.toPath(), new File(out, f.name).toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
                             }
