@@ -1,12 +1,19 @@
-# Release 附件规范
+# Kotlin Release 附件与签名规范
 
-所有者于 2026-11-21 明确要求，从 0.2.3-pr 开始，每次 GitHub Release 只上传：
+## 2026-11-21 所有者授权
 
-1. `StarTrace.apk`：固定个人发布签名、仅 `arm64-v8a` 原生库，须验证证书、哈希和原生架构。
-2. `README.md`：安装、功能、数据安全和使用说明。
+所有者明确要求通过 GitHub Actions 编译安装包并发布 Release；允许使用与 Java 原版不一致的新签名，愿意卸载原版且无需保留数据。
 
-不得把签名/权限/ABI/单元测试/设备测试/Lint/JSON报告、合成KML、截图ZIP或其他文件上传到Release。这些保留在GitHub Actions对应产物和源码文档中。更新说明、测试摘要和构建链接直接写入Release正文。
+- Kotlin 新签名已保存为本仓库 `SIGNING_BUNDLE`，后续发布必须固定使用，不得反复生成。
+- 证书 SHA-256：`d5aa7ea6d604420beba5909e4b6a84b152c79e44d2348fa15f1f0f09267de95a`。
+- 原 Java 版无法被此 APK 直接覆盖；首次安装须卸载原版，卸载会删除数据。
+- 原 Java 仓库、PR 和 Release 不修改。
 
-工作流受信任功能分支手动构建生成 `StarTrace-release-files` 产物，内含上述且仅上述两个文件；调试包和验证报告不混入该产物。发布时明确列出两个附件，不枚举整个报告目录。
+## Release 只能上传两个附件
 
-保持 Pre-release、公开仓库、原发布签名和纯ARM64，不自动合并main。之前已发布的附件不因这项未来规范自动删除。GitHub自带的Source code压缩包不是手工上传的Release asset，用户可忽略。
+1. `StarTrace.apk`：固定 Kotlin 发布签名、不可调试、仅 `arm64-v8a`，验证签名、哈希、ELF 架构和 16KB ZIP 对齐。
+2. `README.md`：对应构建提交的安装与使用说明。
+
+测试报告、Lint、权限/签名/ABI 报告、JSON、合成 KML、截图不上传 Release，保存在 Actions。GitHub 自动附带的 Source code 压缩包不计为上传附件。
+
+只有受信任 main 的 `workflow_dispatch` 构建可读取签名。发布工作流检查同一构建的单元测试、Android 16 模拟器、Lint 和签名验证，再先创建 draft，确认附件及哈希后公开为 Pre-release。真机长期后台/功耗尚未验收，不标为已完成真机验收。

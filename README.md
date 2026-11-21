@@ -10,19 +10,27 @@
 
 **验证完成：111 项单元测试通过，23 项 Android 16 设备测试通过，Lint 0 错误。**
 
-详情见 [迁移与验证说明](docs/KOTLIN-MIGRATION.md)。以下版本历史是原 Java 项目的历史记录，不表示原 PR 已被合并。
+详情见 [迁移与验证说明](docs/KOTLIN-MIGRATION.md)。以下版本历史是原 Java 项目的历史记录；其中“原签名”“仅 PR”描述当时状态，不覆盖本页当前安装说明。
 
 ## 安装与签名（重要）
 
-**新仓库目前未配置原发布签名 `SIGNING_BUNDLE`。不要卸载旧版来安装调试 APK，否则会丢失本地轨迹。**
+**本 Kotlin 版使用全新的固定发布签名，与原 Java 版签名不同。用户已于 2026-11-21 明确授权新签名，并确认首次安装时卸载原版、不保留数据。**
 
-当前 Actions 提供用于回归测试的调试构建，它不能覆盖原发布签名 APK。这里没有发布任何冒充可覆盖更新的正式 Release。
+1. 在本仓库 Releases 下载 `StarTrace.apk`，不要下载调试测试包或 Source code。
+2. 如果手机已安装原 Java 版，先卸载原版，再安装 Kotlin APK。卸载会删除本地轨迹、收藏和设置；如果改变主意想保留记录，请先导出。
+3. 今后的 Kotlin 版本沿用同一个新签名，可覆盖更新。不要重新初始化或删除本仓库的 `SIGNING_BUNDLE`。
 
-若要生成可覆盖安装的 Kotlin 正式包，需要仓库所有者把**同一份原签名材料**安全配置为本仓库的 `SIGNING_BUNDLE`，再在 `main` 手动运行 Android APK。GitHub Secret 不可读回；不会生成新密钥冒充原签名，也不会把签名私钥写入源码或日志。工作流会验证原证书 SHA-256：
+适用 Android 13 及以上、ARM64（arm64-v8a）设备；红米 K70 符合架构要求，但真机长期后台表现仍需验收。包名保持 `com.meteorsss.startrace`，界面中的应用名仍为“星迹”。
 
-`8cd33c25b2fd01833a56c0ff2e71a5bcb14d25eaa39046928bca92854edc1098`
+新签名在 GitHub Actions 临时运行器生成，以本仓库 Actions Secret 公钥加密后保存为 `SIGNING_BUNDLE`。私钥和密码不写入源码、Release 或日志；本地只接收不可解密的仓库密文。一次性初始化工作流已停用，以防误换签名。
 
-保持包名 `com.meteorsss.startrace` 和原 versionName `0.2.3-pr`。新仓库 versionCode 使用 `100000 + GITHUB_RUN_NUMBER`（可通过 `STARTRACE_VERSION_CODE` 显式指定），避免独立仓库运行编号较小导致升级降级错误。发布构建仍只含 `arm64-v8a`；测试构建保留模拟器所需架构。
+**Kotlin 新发布证书 SHA-256：**
+
+`d5aa7ea6d604420beba5909e4b6a84b152c79e44d2348fa15f1f0f09267de95a`
+
+工作流独立校验该固定证书，拒绝意外签名。原 Java 版证书为 `8cd33c25…c1098`，两者不同是本次明确选择，不是兼容升级。
+
+保留 versionName `0.2.3-pr`；新仓库 versionCode 使用 `100000 + GITHUB_RUN_NUMBER`（可通过 `STARTRACE_VERSION_CODE` 显式指定）。正式发布构建只含 `arm64-v8a`，不可调试；debug 构建仅用于模拟器测试，不作为 Release 附件。
 
 ## Release 下载文件
 
@@ -74,8 +82,8 @@
 - Kotlin 2.3.21、JDK/JVM target 17、AGP 8.13.2、Gradle 8.13、compile/target SDK 36、min SDK 33（Android 13）。
 - main 与 PR 执行单元测试、Android Lint、debug APK 和设备测试 APK 编译、权限检查；只有配置原签名后的可信 main 手动运行才生成签名 Release。
 - 单独的 Android 16 模拟器任务检查页面渲染、SQLite/GPX/CSV、录制服务开始/暂停/继续/停止；截图与日志保存在构建产物中。
-- 原 Java 仓库的 `SIGNING_BUNDLE` 是已有发布签名材料；此 Secret 不会随 Git 仓库复制，当前新仓库尚未配置。
-- **不要重新初始化或删除 SIGNING_BUNDLE**，否则现有 APK 无法由新密钥直接覆盖升级。当前唯一持久副本在仓库 Secret，应另行安排经过授权的加密离线备份。
+- Kotlin 仓库已配置独立的新 `SIGNING_BUNDLE`；与原 Java 仓库签名不同，今后 Kotlin 发布固定使用这一份。
+- **不要重新初始化或删除 SIGNING_BUNDLE**，否则已安装的 Kotlin APK 无法由新密钥直接覆盖升级。当前持久副本在仓库 Secret；尚未制作可恢复的离线备份，不要把仓库公钥密文误认为可独立恢复的备份。
 - 签名 Secret 仅由构建任务读取；解密后的密钥只存在临时云端运行器，构建结束删除。
 - Actions artifacts 有保留期，正式版本发布到公开 Releases。Actions 额度/费用由账号方案决定，不主动开启付费资源。
 
