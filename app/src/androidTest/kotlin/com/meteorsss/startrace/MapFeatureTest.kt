@@ -122,8 +122,8 @@ class MapFeatureTest {
         try {
             Store(context(), name).use { store ->
                 Assert.assertEquals(2, store.getReadableDatabase().getVersion().toLong())
-                Assert.assertEquals("old", store.track(1).name)
-                Assert.assertEquals(50.0, store.track(1).distance, 0.0)
+                Assert.assertEquals("old", store.track(1)!!.name)
+                Assert.assertEquals(50.0, store.track(1)!!.distance, 0.0)
                 Assert.assertEquals("saved", store.places().get(0).name)
                 Assert.assertTrue(Double.isNaN(store.preview(1, 100).get(0).verticalAccuracy))
                 Assert.assertTrue(Double.isNaN(store.analyze(1, 8000, 50.0).ascent))
@@ -164,7 +164,7 @@ class MapFeatureTest {
                 )
                 scenario.moveToState(Lifecycle.State.CREATED)
                 scenario.moveToState(Lifecycle.State.RESUMED)
-                await(scenario, Predicate { obj: Predicate<in T?>? -> obj.readyForTests() }, "resumed map")
+                await(scenario, Predicate { obj: MapActivity -> obj.readyForTests() }, "resumed map")
                 Assert.assertFalse(MapPolicy.allowed(context()))
             }
         } finally {

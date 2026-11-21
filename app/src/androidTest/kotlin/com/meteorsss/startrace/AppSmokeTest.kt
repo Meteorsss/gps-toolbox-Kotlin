@@ -127,8 +127,8 @@ class AppSmokeTest {
             db.add(id, TrackPoint(31.2, 121.2, 43.0, 4.0, 2.0, 1700000040000L, 41000, 2, true), false)
             db.update(id, 1000, 5.0, "recording")
             db.recoverInterrupted()
-            Assert.assertEquals("interrupted", db.track(id).status)
-            Assert.assertEquals(2, db.track(id).points.toLong())
+            Assert.assertEquals("interrupted", db.track(id)!!.status)
+            Assert.assertEquals(2, db.track(id)!!.points.toLong())
             val gpx = ByteArrayOutputStream()
             db.export(id, gpx, false)
             val text = gpx.toString("UTF-8")
@@ -187,7 +187,7 @@ class AppSmokeTest {
                 SystemClock.sleep(500)
                 scenario.onActivity(ActivityAction { a: MainActivity ->
                     Assert.assertNull(TrackService.Companion.active)
-                    Assert.assertEquals("finished", a!!.app.store.track(id[0]).status)
+                    Assert.assertEquals("finished", a!!.app.store.track(id[0])!!.status)
                     a.app.store.delete(id[0])
                 })
             }
@@ -243,7 +243,7 @@ class AppSmokeTest {
             val after: LongArray? = longArrayOf(0)
             scenario.onActivity(ActivityAction { a: MainActivity ->
                 a!!.navigate("compass")
-                view!![0] = find<CompassView?>(a.body, CompassView::class.java)
+                view!![0] = find<CompassView>(a.body, CompassView::class.java)
                 Assert.assertNotNull(view[0])
                 Assert.assertNotEquals(View.LAYER_TYPE_SOFTWARE.toLong(), view[0]!!.getLayerType().toLong())
             })
@@ -385,7 +385,7 @@ class AppSmokeTest {
         val id = longArrayOf(-1)
         val created = longArrayOf(0)
         val dialog = arrayOf<AlertDialog?>(null)
-        val original = arrayOf<Place>(null)
+        val original = arrayOf<Place?>(null)
         try {
             ActivityScenario.launch<MainActivity>(MainActivity::class.java).use { scenario ->
                 scenario.onActivity(ActivityAction { a: MainActivity ->
@@ -515,7 +515,7 @@ class AppSmokeTest {
                     false,
                     0f
                 )
-                val status: GnssStatus? = builder.build()
+                val status = builder.build()
                 a!!.e.acceptGnssStatus(status)
                 Assert.assertEquals(7, status!!.getSatelliteCount().toLong())
                 Assert.assertEquals(7, a.e.currentSatellites().size.toLong())

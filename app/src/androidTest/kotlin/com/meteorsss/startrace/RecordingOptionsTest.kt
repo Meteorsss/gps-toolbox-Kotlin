@@ -103,13 +103,13 @@ class RecordingOptionsTest {
                     TrackService.Companion.active = live
                     val base = SystemClock.elapsedRealtime() - 12000
                     for (i in 0..6) live.fixForTests(fix(base + i * 1000, 31 + i * .00001))
-                    Assert.assertEquals(3, app.store.track(id).raw.toLong())
-                    Assert.assertEquals(3, app.store.track(id).points.toLong())
+                    Assert.assertEquals(3, app.store.track(id)!!.raw.toLong())
+                    Assert.assertEquals(3, app.store.track(id)!!.points.toLong())
                     Assert.assertEquals(base + 6000, app.store.preview(id, 100).get(2).elapsed)
                     Preferences.interval(app, 1)
                     live.setIntervalSeconds(Preferences.interval(app))
                     live.fixForTests(fix(base + 7000, 31.00007))
-                    Assert.assertEquals(4, app.store.track(id).raw.toLong())
+                    Assert.assertEquals(4, app.store.track(id)!!.raw.toLong())
                     Assert.assertNotEquals(
                         app.store.preview(id, 100).get(2).segment.toLong(),
                         app.store.preview(id, 100).get(3).segment.toLong()
@@ -122,13 +122,13 @@ class RecordingOptionsTest {
                     poor.setAccuracy(1000f)
                     live.fixForTests(poor)
                     live.fixForTests(fix(base + 11000, 31.00011))
-                    Assert.assertEquals(6, app.store.track(id).raw.toLong())
+                    Assert.assertEquals(6, app.store.track(id)!!.raw.toLong())
                     val points = app.store.preview(id, 100)
                     Assert.assertNotEquals(points.get(4)!!.segment.toLong(), points.get(5)!!.segment.toLong())
-                    val count = app.store.track(id).raw.toLong()
+                    val count = app.store.track(id)!!.raw.toLong()
                     live.paused = true
                     live.fixForTests(fix(base + 12000, 31.00012))
-                    Assert.assertEquals(count, app.store.track(id).raw.toLong())
+                    Assert.assertEquals(count, app.store.track(id)!!.raw.toLong())
                 })
         } finally {
             InstrumentationRegistry.getInstrumentation()
@@ -163,20 +163,20 @@ class RecordingOptionsTest {
                     Assert.assertNotNull(current)
                     Assert.assertNotNull(mps)
                     Assert.assertEquals(Gravity.CENTER.toLong(), current!!.getGravity().toLong())
-                    Assert.assertEquals(0.0, a.speedStats().distance, 0.0)
+                    Assert.assertEquals(0.0, a.speedStats()!!.distance, 0.0)
                     Assert.assertTrue(stats!!.getText().toString().contains("本次测速"))
                     Assert.assertFalse(stats.getText().toString().contains(Geo.meters(1234.0)))
                     live.distance = 2345.0
                     a.refresh()
-                    Assert.assertEquals(0.0, a.speedStats().distance, 0.0)
+                    Assert.assertEquals(0.0, a.speedStats()!!.distance, 0.0)
                     Assert.assertFalse(stats.getText().toString().contains(Geo.meters(2345.0)))
                     a.navigate("")
                     Assert.assertNull(a.speedStats())
                     Assert.assertSame(live, TrackService.Companion.active)
                     Assert.assertTrue(live.paused)
                     a.navigate("speed")
-                    Assert.assertEquals(0.0, a.speedStats().distance, 0.0)
-                    Assert.assertEquals(0, a.speedStats().validPoints.toLong())
+                    Assert.assertEquals(0.0, a.speedStats()!!.distance, 0.0)
+                    Assert.assertEquals(0, a.speedStats()!!.validPoints.toLong())
                     TrackService.Companion.active = null
                     a.refresh()
                     Assert.assertNotNull(a.speedStats())
