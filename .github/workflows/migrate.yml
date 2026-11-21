@@ -25,8 +25,8 @@ jobs:
         run: gradle --no-daemon -I migration/resolve.gradle :app:migrationClasspath
       - name: Download pinned JetBrains converter
         run: |
-          curl -fL --retry 3 https://download.jetbrains.com/idea/idea-263.5153.40.tar.gz -o "$RUNNER_TEMP/idea.tar.gz"
-          curl -fL --retry 3 https://download.jetbrains.com/idea/idea-263.5153.40.tar.gz.sha256 -o "$RUNNER_TEMP/idea.sha256"
+          curl -fL --retry 3 https://download.jetbrains.com/idea/idea-263.8311.30.tar.gz -o "$RUNNER_TEMP/idea.tar.gz"
+          curl -fL --retry 3 https://download.jetbrains.com/idea/idea-263.8311.30.tar.gz.sha256 -o "$RUNNER_TEMP/idea.sha256"
           cd "$RUNNER_TEMP"
           echo "$(cut -d' ' -f1 idea.sha256)  idea.tar.gz" | sha256sum -c -
           mkdir idea
