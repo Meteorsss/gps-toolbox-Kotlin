@@ -740,7 +740,7 @@ class MainActivity : Activity() {
             .putExtra(Intent.EXTRA_TITLE, "startrace-" + t.id + format.extension)
     }
 
-    fun export(t: Track?, format: TrackExport) {
+    fun export(t: Track, format: TrackExport) {
         if (TrackService.Companion.active != null && TrackService.Companion.active!!.trackId == t.id) {
             toast("请结束记录后再导出，以获得一致的完整文件。")
             return
@@ -898,7 +898,7 @@ class MainActivity : Activity() {
     }
 
     fun selectRecordingInterval() {
-        val labels = RecordingCadence.SECONDS.map { "$it ? / ?" }.toTypedArray()
+        val labels = RecordingCadence.SECONDS.map { "$it 秒 / 点" }.toTypedArray()
         var selected = 0
         for (i in RecordingCadence.Companion.SECONDS.indices) if (RecordingCadence.Companion.SECONDS[i] == Preferences.interval(
                 this

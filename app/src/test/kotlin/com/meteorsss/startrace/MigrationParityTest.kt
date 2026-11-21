@@ -90,7 +90,7 @@ class MigrationParityTest {
     }
 
     @Test fun exportsAreByteIdenticalIncludingUnicodeAndTrackBreaks() {
-        val title = "?? <&> \" ' ??"
+        val title = "迁移 <&> \" ' 🚀"
         same(baseline.call("Gpx", "header", title), migrated.call("Gpx", "header", title))
         same(baseline.call("Gpx", "footer"), migrated.call("Gpx", "footer"))
         same(baseline.call("Kml", "escape", title + 1.toChar()), migrated.call("Kml", "escape", title + 1.toChar()))
