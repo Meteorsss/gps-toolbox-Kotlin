@@ -1,0 +1,52 @@
+name: Verify actual repository languages
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['app/src/**', '.gitattributes', '.github/workflows/language-audit.yml']
+permissions:
+  contents: read
+jobs:
+  linguist:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Analyze real source with official GitHub Linguist
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/language-audit"
+          docker pull ghcr.io/github-linguist/linguist:9.7.0
+          docker image inspect ghcr.io/github-linguist/linguist:9.7.0 --format '{{json .RepoDigests}}' > "$RUNNER_TEMP/language-audit/image-digests.json"
+          docker run --rm -v "$PWD:/repo:ro" -w /repo ghcr.io/github-linguist/linguist:9.7.0 github-linguist --version
+          docker run --rm -v "$PWD:/repo:ro" -w /repo ghcr.io/github-linguist/linguist:9.7.0 github-linguist --breakdown --json | tee "$RUNNER_TEMP/language-audit/linguist.json"
+      - name: Assert Kotlin implementation without language-label overrides
+        run: |
+          python - <<'PY'
+          import json,os,pathlib,subprocess
+          data=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'language-audit/linguist.json').read_text())
+          paths=subprocess.check_output(['git','ls-files'],text=True).splitlines()
+          java=[p for p in paths if p.endswith('.java')]
+          kotlin=[p for p in paths if p.endswith('.kt')]
+          assert not java, java
+          assert len(kotlin)==45, len(kotlin)
+          assert 'Java' not in data, data
+          assert max(data,key=lambda key:data[key]['size'])=='Kotlin', data
+          assert len(data['Kotlin']['files'])==45, data['Kotlin']
+          rules=[line for line in pathlib.Path('.gitattributes').read_text().splitlines() if line.strip() and not line.lstrip().startswith('#')]
+          assert not rules, 'This audit requires automatic detection, no attribute rules'
+          result={'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'kotlin_files':len(kotlin),'java_files':0,'languages':{k:{key:v[key] for key in ['size','percentage']} for k,v in data.items()},'language_overrides':False}
+          (pathlib.Path(os.environ['RUNNER_TEMP'])/'language-audit/summary.json').write_text(json.dumps(result,indent=2))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as report:
+              report.write('## Actual repository languages\n\nOfficial GitHub Linguist, no language overrides. The homepage widget is managed separately by GitHub.\n\n')
+              report.write('| Language | Bytes | Percentage |\n|---|---:|---:|\n')
+              for name,info in data.items():report.write(f"| {name} | {info['size']} | {info['percentage']}% |\n")
+              report.write(f'\nKotlin files: {len(kotlin)}; Java files: 0.\n')
+          print(json.dumps(result,indent=2))
+          PY
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: actual-repository-languages
+          path: ${{ runner.temp }}/language-audit/
+          retention-days: 90

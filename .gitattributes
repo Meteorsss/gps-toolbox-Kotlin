@@ -1,0 +1,4 @@
+# Keep language detection based on actual source; no language overrides or exclusions.
+# Adding this file invalidates Linguist incremental statistics on the next scan.
+# See github-linguist/linguist lib/linguist/repository.rb, Repository#compute_stats.
+# This file intentionally has no attribute rules and does not alter checkout behavior.
