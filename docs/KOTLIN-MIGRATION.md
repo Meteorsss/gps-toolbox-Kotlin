@@ -94,3 +94,11 @@ GitHub 官方说明：语言统计由 Linguist 生成，并在向默认分支推
 - https://github.com/github-linguist/linguist/blob/main/docs/troubleshooting.md
 
 原始远端核查结果见 `docs/verification/github-language-audit.json`。本次仅添加说明与核查数据，不改变应用及构建代码。
+
+### 语言统计问题已解决（2026-11-21 18:20，Asia/Shanghai）
+
+添加仅含注释、不设置任何属性规则的 `.gitattributes` 后，GitHub 服务端重新统计为 **Kotlin 97.9%、Python 1.9%、Shell 0.2%**，Java 已从统计中移除；仓库 `language` 字段也已变为 Kotlin。随后使用浏览器实际打开仓库首页，确认 Languages 栏显示相同结果。
+
+该文件没有 `linguist-language`、`linguist-vendored` 或其他覆盖/排除规则，不改变文件内容或检出方式。未更改应用代码、默认分支、仓库可见性或历史。
+
+独立的官方 Linguist 容器核查也已成功：[语言核查运行 44893751958](https://github.com/Meteorsss/gps-toolbox-Kotlin/actions/runs/44893751958)，确认 45 个 Kotlin 文件、0 个 Java 文件，主语言为 Kotlin，无语言标签覆盖。镜像按 SHA-256 固定，真实工具版本可在运行日志查看。前两次核查任务因镜像标签/文件所有者配置失败，仅涉及新增检查工具；修正后完整核查通过，不影响应用构建。
