@@ -3,37 +3,60 @@ on:
   workflow_dispatch:
     inputs:
       repository_public_key:
-        description: GitHub repository Actions secrets public key (not a credential)
+        description: This repository Actions secrets public key (not a credential)
         required: true
         type: string
-permissions: {}
+      repository_public_key_id:
+        description: ID of the same repository public key
+        required: true
+        type: string
+permissions:
+  contents: read
 jobs:
   create:
+    if: github.repository == 'Meteorsss/gps-toolbox-Kotlin' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6.3.0
         with:
           distribution: temurin
           java-version: '17'
-      - name: Encrypt a new release key for this repository
+      - name: Encrypt new permanent Kotlin release key for this repository
         env:
           REPOSITORY_PUBLIC_KEY: ${{ inputs.repository_public_key }}
+          REPOSITORY_PUBLIC_KEY_ID: ${{ inputs.repository_public_key_id }}
+          SIGNING_ALREADY_CONFIGURED: ${{ secrets.SIGNING_BUNDLE != '' }}
         run: |
           python -m pip install --quiet PyNaCl==1.5.0
           python - <<'PY'
-          import os, json, base64, secrets, subprocess, pathlib
-          from nacl.public import PublicKey, SealedBox
+          import os,json,base64,secrets,subprocess,pathlib,hashlib
+          from nacl.public import PublicKey,SealedBox
           from nacl.encoding import Base64Encoder
-          password = secrets.token_urlsafe(40)
-          os.environ['KS_PASSWORD'] = password
-          key = pathlib.Path(os.environ['RUNNER_TEMP']) / 'startrace-release.p12'
+          if os.environ['SIGNING_ALREADY_CONFIGURED']=='true':
+              raise SystemExit('Refusing key rotation: SIGNING_BUNDLE already exists.')
+          password=secrets.token_urlsafe(40)
+          print('::add-mask::'+password)
+          os.environ['KS_PASSWORD']=password
+          key=pathlib.Path(os.environ['RUNNER_TEMP'])/'startrace-kotlin-release.p12'
           try:
-              subprocess.run(['keytool','-genkeypair','-keystore',str(key),'-storetype','PKCS12','-alias','startrace','-keyalg','RSA','-keysize','3072','-validity','10000','-dname','CN=StarTrace Personal,OU=GPS Toolbox','-storepass:env','KS_PASSWORD','-keypass:env','KS_PASSWORD'], check=True, capture_output=True)
-              bundle = json.dumps({'keystore':base64.b64encode(key.read_bytes()).decode(),'password':password,'alias':'startrace'}).encode()
-              sealed = SealedBox(PublicKey(os.environ['REPOSITORY_PUBLIC_KEY'], Base64Encoder)).encrypt(bundle)
-              print('SEALED_SIGNING_BUNDLE=' + base64.b64encode(sealed).decode())
-              print('Only repository-public-key encrypted ciphertext is logged; plaintext key is deleted.')
+              subprocess.run(['keytool','-genkeypair','-keystore',str(key),'-storetype','PKCS12','-alias','startrace','-keyalg','RSA','-keysize','3072','-validity','10000','-dname','CN=StarTrace Kotlin,OU=GPS Toolbox Kotlin','-storepass:env','KS_PASSWORD','-keypass:env','KS_PASSWORD'],check=True,capture_output=True)
+              cert=subprocess.check_output(['keytool','-exportcert','-keystore',str(key),'-alias','startrace','-storetype','PKCS12','-storepass:env','KS_PASSWORD'],stderr=subprocess.DEVNULL)
+              fingerprint=hashlib.sha256(cert).hexdigest()
+              bundle=json.dumps({'keystore':base64.b64encode(key.read_bytes()).decode(),'password':password,'alias':'startrace','certificate_sha256':fingerprint}).encode()
+              sealed=SealedBox(PublicKey(os.environ['REPOSITORY_PUBLIC_KEY'],Base64Encoder)).encrypt(bundle)
+              out=pathlib.Path('sealed-signing');out.mkdir()
+              (out/'sealed-signing.json').write_text(json.dumps({'key_id':os.environ['REPOSITORY_PUBLIC_KEY_ID'],'encrypted_value':base64.b64encode(sealed).decode()}))
+              (out/'certificate-sha256.txt').write_text(fingerprint+'\n')
+              print('New Kotlin release certificate SHA-256: '+fingerprint)
+              print('Artifact contains repository-public-key encrypted ciphertext only; never plaintext signing material.')
           finally:
               key.unlink(missing_ok=True)
+              os.environ.pop('KS_PASSWORD',None)
           PY
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: encrypted-kotlin-signing-initialization
+          path: sealed-signing/
+          retention-days: 1
+          if-no-files-found: error
