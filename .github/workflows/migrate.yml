@@ -1,0 +1,43 @@
+name: One-shot Java to Kotlin conversion
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  convert:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.3.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4.0.4
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v6.4.1
+        with:
+          gradle-version: '8.13'
+      - name: Resolve original Android classpath
+        run: gradle --no-daemon -I migration/resolve.gradle :app:migrationClasspath
+      - name: Download pinned JetBrains converter
+        run: |
+          curl -fL --retry 3 https://download.jetbrains.com/idea/idea-263.5153.40.tar.gz -o "$RUNNER_TEMP/idea.tar.gz"
+          curl -fL --retry 3 https://download.jetbrains.com/idea/idea-263.5153.40.tar.gz.sha256 -o "$RUNNER_TEMP/idea.sha256"
+          cd "$RUNNER_TEMP"
+          echo "$(cut -d' ' -f1 idea.sha256)  idea.tar.gz" | sha256sum -c -
+          mkdir idea
+          tar -xzf idea.tar.gz -C idea --strip-components=1
+      - name: Convert all sources with resolved Android dependencies
+        run: python migration/convert.py
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: kotlin-conversion
+          path: |
+            converted/
+            conversion-logs/
+          retention-days: 7

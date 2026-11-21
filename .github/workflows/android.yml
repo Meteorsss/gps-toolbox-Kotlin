@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [feature/openfreemap-track-insights]
+    branches: [main]
     paths-ignore: ['**.md', 'docs/**']
 permissions:
   contents: read
@@ -30,7 +30,7 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Restore fixed release signing key
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/feature/openfreemap-track-insights' && github.repository == 'Meteorsss/gps-toolbox'
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.repository == 'Meteorsss/gps-toolbox-Kotlin'
         env:
           SIGNING_BUNDLE: ${{ secrets.SIGNING_BUNDLE }}
         run: |
