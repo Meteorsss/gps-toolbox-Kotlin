@@ -100,20 +100,28 @@ public final class Screens {
       b.addView(u.button("启用精确定位", true, a::askLocation));
       u.gap(b, 14);
     }
+    button(a, b, "打开地图 · 当前位置", () -> a.openMap(-1));
     LinearLayout hero = u.panel();
-    hero.addView(u.text("当前速度 · LIVE SPEED", 12, u.accent));
+    TextView speedLabel = u.text("当前速度 · LIVE SPEED", 12, u.accent);
+    speedLabel.setTag("dashboard-speed-label");
+    speedLabel.setGravity(Gravity.CENTER);
+    hero.addView(speedLabel, new LinearLayout.LayoutParams(-1, -2));
     u.gap(hero, 12);
     LinearLayout row = u.row();
+    row.setTag("dashboard-speed-row");
+    row.setGravity(Gravity.CENTER);
     TextView speed = u.title("—", 64);
+    speed.setTag("dashboard-speed-value");
+    speed.setGravity(Gravity.CENTER);
     a.bind(
         speed,
         () -> e.fresh() && e.location.hasSpeed() ? f("%.1f", e.location.getSpeed() * 3.6) : "—");
     row.addView(speed);
     TextView unit = u.text("  km/h", 17, u.muted);
     row.addView(unit);
-    hero.addView(row);
+    hero.addView(row, new LinearLayout.LayoutParams(-1, -2));
     u.gap(hero, 9);
-    u.note(hero, "卫星速度 · 无有效速度时显示 —，不将未知速度当作 0。 ");
+    u.note(hero, "卫星速度 · 无有效速度时显示 —，不将未知速度当作 0。 ").setGravity(Gravity.CENTER);
     b.addView(hero);
     u.pair(
         b,
@@ -202,7 +210,7 @@ public final class Screens {
     b.addView(u.button(TrackService.active == null ? "开始记录轨迹" : "查看正在记录的轨迹", true, a::record));
     u.gap(b, 12);
     button(a, b, "定位权限与开关", a::askLocation);
-    u.note(b, "纯本地 · 无账号 · 无联网权限\n建议在开阔处等待首次定位；室内可能无法获取卫星位置。");
+    u.note(b, "无账号 · 轨迹本地保存 · 在线地图需另行同意\n建议在开阔处等待首次定位；室内可能无法获取卫星位置。");
   }
 
   private static void satellites(MainActivity a) {
@@ -346,6 +354,7 @@ public final class Screens {
     Ui u = a.u;
     LinearLayout b = a.body;
     u.section(b, "LEAVE A TRACE", "把走过的路留下");
+    button(a, b, "轨迹点间隔：" + Preferences.interval(a) + " 秒（点击选择）", a::selectRecordingInterval);
     TrackService t = TrackService.active;
     if (t != null) {
       LinearLayout live = u.panel();
@@ -359,7 +368,11 @@ public final class Screens {
       a.bind(d, () -> Geo.meters(t.distance));
       live.addView(d);
       u.gap(live, 8);
-      u.note(live, "缺失、暂停、低精度或异常跳点会断开显示；模拟位置不计入有效轨迹。");
+      u.note(live, "保存间隔 " + t.intervalSeconds() + " 秒。缺失、暂停、低精度或异常跳点会断开显示；模拟位置不计入有效轨迹。");
+      button(a, live, "在地图上看实时轨迹", () -> a.openMap(t.trackId));
+      TrackStatsPanel liveStats = new TrackStatsPanel(a, u, t.trackId);
+      live.addView(liveStats);
+      a.watch(liveStats::refresh);
       chart(a, live, "track", t.trackId, null, 230);
       u.gap(live, 8);
       u.pair(
@@ -453,15 +466,23 @@ public final class Screens {
                 + " 原始点",
             13,
             u.muted));
+    button(a, p, "在地图上查看整段轨迹", () -> a.openMap(t.id));
+    TrackStatsPanel stats = new TrackStatsPanel(a, u, t.id);
+    p.addView(stats);
+    a.watch(stats::refresh);
     chart(a, p, "track", t.id, null, 320);
     u.note(p, "橙点为起点，青绿点为终点。轨迹是相对示意图，不含道路底图；长距离和极地区域可能有投影变形。");
     a.body.addView(p);
     boolean live = TrackService.active != null && TrackService.active.trackId == t.id;
     if (!live) {
       button(a, a.body, "导出 GPX（有效轨迹）", () -> a.export(t, false));
+      button(a, a.body, "导出 KML（Google Earth / 我的地图）", () -> a.export(t, TrackExport.KML));
       button(a, a.body, "导出 CSV（全部原始点）", () -> a.export(t, true));
     } else u.note(a.body, "请结束记录后再导出，以获得一致的完整文件。");
-    u.note(a.body, "GPX 保留断点，不插值补线。椭球高写入扩展字段，不冒充标准海拔。CSV 保留被过滤的位置与模拟标记。");
+    u.note(
+        a.body,
+        "GPX / KML 保留断点，不插值补线。KML 使用 WGS84 贴地轨迹，不导出椭球高度；逐点时间与测量值用 GPX / CSV。Google Earth 可导入"
+            + " KML；Google 地图需先在网页版“我的地图”导入（KML 最大 5 MB）。CSV 保留被过滤的位置与模拟标记。");
   }
 
   private static void places(MainActivity a) {
@@ -517,6 +538,7 @@ public final class Screens {
   private static void tools(MainActivity a) {
     Ui u = a.u;
     u.section(a.body, "SMALL TOOLS, REAL USE", "随手可用");
+    tool(a, "地图与轨迹", "OpenFreeMap · 免账号免 Key", () -> a.openMap(-1));
     tool(a, "方向指南针", "磁北方向 · 传感器状态", () -> a.navigate("compass"));
     tool(a, "大字速度表", "专注速度 · 可选保持亮屏", () -> a.navigate("speed"));
     tool(a, "坐标格式转换", "十进制度 ↔ 度分秒", a::coordinateTool);
@@ -601,30 +623,59 @@ public final class Screens {
   private static void speed(MainActivity a) {
     Ui u = a.u;
     u.section(a.body, "LIVE SPEED", "大字速度表");
+    if (!a.e.precise() || !a.e.gpsEnabled()) button(a, a.body, "启用精确定位 · 进入即自动测速", a::askLocation);
     LinearLayout p = u.panel();
-    u.gap(p, 32);
+    u.gap(p, 24);
     TextView speed = u.title("—", 76);
     speed.setGravity(Gravity.CENTER);
+    speed.setTag("large-speed-current");
     a.bind(
         speed,
         () ->
-            a.e.fresh() && a.e.location.hasSpeed()
+            a.e.fresh()
+                    && a.e.location.hasSpeed()
+                    && Float.isFinite(a.e.location.getSpeed())
+                    && a.e.location.getSpeed() >= 0
                 ? f("%.1f", a.e.location.getSpeed() * 3.6)
                 : "—");
-    p.addView(speed);
+    p.addView(speed, new LinearLayout.LayoutParams(-1, -2));
     TextView unit = u.text("km/h", 22, u.accent);
     unit.setGravity(Gravity.CENTER);
-    p.addView(unit);
-    u.gap(p, 30);
-    TextView other = u.text("", 15, u.muted);
-    other.setGravity(Gravity.CENTER);
+    p.addView(unit, new LinearLayout.LayoutParams(-1, -2));
+    u.gap(p, 8);
+    TextView metres = u.text("— m/s", 24, u.accent);
+    metres.setTag("large-speed-current-mps");
+    metres.setGravity(Gravity.CENTER);
     a.bind(
-        other,
+        metres,
         () ->
-            a.e.fresh() && a.e.location.hasSpeed()
+            a.e.fresh()
+                    && a.e.location.hasSpeed()
+                    && Float.isFinite(a.e.location.getSpeed())
+                    && a.e.location.getSpeed() >= 0
                 ? f("%.2f m/s", a.e.location.getSpeed())
-                : "等待有效速度数据");
-    p.addView(other);
+                : "— m/s");
+    p.addView(metres, new LinearLayout.LayoutParams(-1, -2));
+    u.gap(p, 24);
+    TextView statistics = u.text("", 16, u.accent);
+    statistics.setTag("large-speed-session-stats");
+    statistics.setGravity(Gravity.CENTER);
+    a.bind(
+        statistics,
+        () -> {
+          SpeedSession.Snapshot s = a.speedStats();
+          if (s == null) return "本次测速 · 等待进入";
+          String max = Double.isFinite(s.maxMps) ? f("%.1f km/h", s.maxMps * 3.6) : "—";
+          String avg = Double.isFinite(s.averageMps) ? f("%.1f km/h", s.averageMps * 3.6) : "—";
+          return (s.validPoints == 0 ? "本次测速 · 等待有效定位" : "本次测速 · 自动统计中")
+              + "\n最高速度  "
+              + max
+              + "\n平均速度  "
+              + avg
+              + "\n累计里程  "
+              + Geo.meters(s.distance);
+        });
+    p.addView(statistics, new LinearLayout.LayoutParams(-1, -2));
     u.gap(p, 24);
     Switch keep = new Switch(a);
     keep.setText("保持屏幕常亮");
@@ -633,7 +684,10 @@ public final class Screens {
     keep.setOnCheckedChangeListener((v, on) -> a.keepAwake(on));
     p.addView(keep);
     a.body.addView(p);
-    u.note(a.body, "速度来自定位数据，静止或弱信号时可能抖动。请勿在驾驶时操作手机。离开这个页面后会取消常亮。");
+    u.note(
+        a.body,
+        "进入本页即自动开始独立测速，不需要开启轨迹记录；离开本页即清空，再进入从零开始，不保存历史或轨迹文件。临时退到后台暂停统计，返回同一页继续，不连接后台移动。\n\n"
+            + "平均速度=本页抗漂移里程÷前台测速时长（含静止），最高速度为本次有效GNSS速度样本的最大值。定位未到或样本不足显示—；模拟、过期或低精度位置不计统计。轨迹记录的开始、暂停、间隔与统计均不影响本页。所有数值为估计，请勿在驾驶时操作手机。");
   }
 
   private static void diagnostics(MainActivity a) {
@@ -690,9 +744,14 @@ public final class Screens {
   private static void settings(MainActivity a) {
     Ui u = a.u;
     u.section(a.body, "MAKE IT YOURS", "设置与关于");
-    button(a, a.body, u.light ? "切换到深色主题" : "切换到浅色主题", a::theme);
+    button(a, a.body, "色彩模式：" + Preferences.theme(a).label, a::selectTheme);
+    button(a, a.body, "轨迹点间隔：" + Preferences.interval(a) + " 秒", a::selectRecordingInterval);
+    u.note(
+        a.body,
+        "间隔控制保存新定位点，不是保证定位频率；仪表仍约每秒请求定位。大间隔省存储但可能漏弯道或速度峰值；调整间隔会开始新片段，不影响已保存点。CSV保留按所选间隔保存的原始点。");
     button(a, a.body, a.dms() ? "坐标显示：度分秒（点击切换）" : "坐标显示：十进制度（点击切换）", a::toggleDms);
     button(a, a.body, "定位与通知权限", a::appSettings);
+    button(a, a.body, "在线地图隐私 / 撤回同意", a::mapPrivacy);
     button(a, a.body, "第三方许可 · 离线坐标转换", a::thirdPartyNotices);
     button(
         a,
@@ -712,15 +771,17 @@ public final class Screens {
     u.gap(privacy, 10);
     u.note(
         privacy,
-        "无账号、广告、分析 SDK 或联网权限。未申请后台始终定位。只有手动开始轨迹后，才使用前台服务继续记录。\n\n"
-            + "导出文件包含精确位置，请谨慎分享。卸载应用会删除本地数据。GPX 用于通用轨迹，CSV 用于保留全部原始点。\n\n"
+        "无账号、广告或分析 SDK。可选在线地图会联网获取底图，须先同意；轨迹仍只保存本机。未申请后台始终定位。只有手动开始轨迹后，才使用前台服务继续记录。\n\n"
+            + "导出文件包含精确位置，请谨慎分享。卸载应用会删除本地数据。GPX 用于通用轨迹，KML 用于 Google Earth / 我的地图，CSV"
+            + " 用于保留全部原始点。\n\n"
             + "星迹 "
             + BuildConfig.VERSION_NAME
             + " · build "
             + BuildConfig.VERSION_CODE
             + "\n"
             + "目标 Android 16 · GitHub Actions 云端构建\n"
-            + "此版本没有道路底图、离线地图或模拟定位。当前位置支持 WGS84 / GCJ-02 显示切换（离线近似转换）；轨迹与收藏始终使用 WGS84。");
+            + "本PR加入可选OpenFreeMap在线道路底图；没有离线地图包、路线规划或模拟定位。当前位置支持 WGS84 / GCJ-02"
+            + " 显示切换（离线近似转换）；轨迹与收藏始终使用 WGS84。");
     a.body.addView(privacy);
   }
 }

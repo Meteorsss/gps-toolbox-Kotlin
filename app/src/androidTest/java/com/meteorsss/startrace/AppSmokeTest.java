@@ -46,6 +46,10 @@ public class AppSmokeTest {
   @Test
   public void allPagesAndBothThemesRender() throws Exception {
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+      scenario.onActivity(a -> {
+        Preferences.theme(a, ThemeMode.DARK);
+        a.buildRoot();
+      });
       String[] expected = {"此刻，在哪里", "头顶的卫星", "把走过的路留下", "随手可用"};
       for (int i = 0; i < 4; i++) {
         final int page = i;

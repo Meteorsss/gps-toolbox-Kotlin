@@ -31,7 +31,8 @@ public final class MainActivity extends Activity {
   private boolean resumed, rendering, pendingRecord;
   private String serviceKey = "";
   private long exportId = -1;
-  private boolean exportRaw;
+  private TrackExport exportFormat = TrackExport.GPX;
+  private SpeedSession speedSession;
   private final GnssEngine.Observer observer =
       () -> {
         if (resumed && !rendering) refresh();
@@ -39,6 +40,7 @@ public final class MainActivity extends Activity {
 
   @Override
   public void onCreate(Bundle saved) {
+    setTheme(Preferences.light(this) ? R.style.AppThemeLight : R.style.AppTheme);
     super.onCreate(saved);
     app = (App) getApplication();
     e = app.engine;
@@ -47,10 +49,13 @@ public final class MainActivity extends Activity {
       mode = saved.getString("mode", "");
       selectedTrack = saved.getLong("track", -1);
       exportId = saved.getLong("export", -1);
-      exportRaw = saved.getBoolean("raw");
+      exportFormat = TrackExport.restore(saved.getString("export_format"), saved.getBoolean("raw"));
       pendingRecord = saved.getBoolean("pendingRecord");
       if (mode.equals("guide")) mode = "places";
     }
+    Object retained = getLastNonConfigurationInstance();
+    if (mode.equals("speed") && retained instanceof SpeedSession)
+      speedSession = (SpeedSession) retained;
     if (Build.VERSION.SDK_INT >= 33)
       getOnBackInvokedDispatcher()
           .registerOnBackInvokedCallback(
@@ -65,12 +70,13 @@ public final class MainActivity extends Activity {
     out.putString("mode", mode);
     out.putLong("track", selectedTrack);
     out.putLong("export", exportId);
-    out.putBoolean("raw", exportRaw);
+    out.putString("export_format", exportFormat.name());
     out.putBoolean("pendingRecord", pendingRecord);
   }
 
   public void buildRoot() {
-    boolean light = getPreferences(MODE_PRIVATE).getBoolean("light", false);
+    boolean light = Preferences.light(this);
+    setTheme(light ? R.style.AppThemeLight : R.style.AppTheme);
     u = new Ui(this, light);
     getWindow().setDecorFitsSystemWindows(false);
     getWindow().setNavigationBarContrastEnforced(false);
@@ -120,15 +126,7 @@ public final class MainActivity extends Activity {
     root.addView(nav);
     setContentView(root);
     root.requestApplyInsets();
-    getWindow()
-        .getInsetsController()
-        .setSystemBarsAppearance(
-            light
-                ? WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                    | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
-                : 0,
-            WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+    Preferences.applyWindow(this, light);
     render();
   }
 
@@ -157,6 +155,8 @@ public final class MainActivity extends Activity {
   }
 
   public void render() {
+    if (!mode.equals("speed")) speedSession = null;
+    else if (speedSession == null) speedSession = new SpeedSession(SystemClock.elapsedRealtime());
     rendering = true;
     for (CompassView view : compassViews) view.setActive(false);
     compassViews.clear();
@@ -208,8 +208,44 @@ public final class MainActivity extends Activity {
         }
       };
 
-  private void refresh() {
+  private void updateSpeedSession() {
+    if (!resumed || speedSession == null) return;
+    if (!e.fresh()) {
+      speedSession.disconnect();
+      return;
+    }
+    Location l = e.location;
+    speedSession.add(
+        new TrackPoint(
+            l.getLatitude(),
+            l.getLongitude(),
+            Double.NaN,
+            l.hasAccuracy() ? l.getAccuracy() : Double.NaN,
+            l.hasSpeed() ? l.getSpeed() : Double.NaN,
+            l.getTime(),
+            l.getElapsedRealtimeNanos() / 1000000L,
+            0,
+            true,
+            Double.NaN,
+            Double.NaN,
+            Double.NaN,
+            l.hasSpeedAccuracy() ? l.getSpeedAccuracyMetersPerSecond() : Double.NaN),
+        l.isMock(),
+        SystemClock.elapsedRealtime());
+  }
+
+  SpeedSession.Snapshot speedStats() {
+    return speedSession == null ? null : speedSession.snapshot(SystemClock.elapsedRealtime());
+  }
+
+  @Override
+  public Object onRetainNonConfigurationInstance() {
+    return mode.equals("speed") ? speedSession : null;
+  }
+
+  void refresh() {
     if (rendering || status == null) return;
+    updateSpeedSession();
     String state =
         !e.precise()
             ? "○  未获得精确位置权限"
@@ -231,6 +267,8 @@ public final class MainActivity extends Activity {
   protected void onResume() {
     super.onResume();
     resumed = true;
+    if (speedSession != null) speedSession.resume(SystemClock.elapsedRealtime());
+    Preferences.applyWindow(this, u.light);
     e.observe(observer);
     e.setVisible(true);
     for (CompassView view : compassViews) view.setActive(true);
@@ -241,12 +279,20 @@ public final class MainActivity extends Activity {
 
   @Override
   protected void onPause() {
+    if (speedSession != null) speedSession.pause(SystemClock.elapsedRealtime());
     resumed = false;
     for (CompassView view : compassViews) view.setActive(false);
     app.main.removeCallbacks(tick);
     e.unobserve(observer);
     e.setVisible(false);
     super.onPause();
+  }
+
+  @Override
+  protected void onDestroy() {
+    app.main.removeCallbacks(tick);
+    if (!isChangingConfigurations()) speedSession = null;
+    super.onDestroy();
   }
 
   public void toast(String message) {
@@ -528,6 +574,30 @@ public final class MainActivity extends Activity {
     return dialog;
   }
 
+  public void openMap(long trackId) {
+    startActivity(new Intent(this, MapActivity.class).putExtra("track_id", trackId));
+  }
+
+  public void mapPrivacy() {
+    new AlertDialog.Builder(this)
+        .setTitle("地图联网与隐私")
+        .setMessage(MapPolicy.DISCLOSURE)
+        .setPositiveButton(
+            "允许在线底图",
+            (d, w) -> {
+              MapPolicy.allow(this, true);
+              toast("已允许，可打开地图查看");
+            })
+        .setNeutralButton(
+            "撤回联网同意",
+            (d, w) -> {
+              MapPolicy.allow(this, false);
+              toast("已撤回。下次打开地图可选择仅本地轨迹。");
+            })
+        .setNegativeButton("取消", null)
+        .show();
+  }
+
   public void thirdPartyNotices() {
     try (InputStream in = getAssets().open("third-party/eviltransform-LICENSE.txt")) {
       String license = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
@@ -573,7 +643,9 @@ public final class MainActivity extends Activity {
     String[] choices =
         live
             ? new String[] {"查看轨迹"}
-            : new String[] {"查看轨迹", "导出 GPX（有效轨迹）", "导出 CSV（全部原始点）", "重命名", "删除轨迹"};
+            : new String[] {
+              "查看轨迹", "导出 GPX（有效轨迹）", "导出 KML（Google Earth / 我的地图）", "导出 CSV（全部原始点）", "重命名", "删除轨迹"
+            };
     new AlertDialog.Builder(this)
         .setTitle(t.name)
         .setItems(
@@ -583,8 +655,9 @@ public final class MainActivity extends Activity {
                 selectedTrack = t.id;
                 navigate("track");
               } else if (w == 1) export(t, false);
-              else if (w == 2) export(t, true);
-              else if (w == 3) {
+              else if (w == 2) export(t, TrackExport.KML);
+              else if (w == 3) export(t, true);
+              else if (w == 4) {
                 LinearLayout f = form();
                 EditText n = input(f, "名称", t.name, false);
                 new AlertDialog.Builder(this)
@@ -616,16 +689,27 @@ public final class MainActivity extends Activity {
   }
 
   public void export(Store.Track t, boolean raw) {
+    export(t, raw ? TrackExport.CSV : TrackExport.GPX);
+  }
+
+  Intent prepareExport(Store.Track t, TrackExport format) {
     exportId = t.id;
-    exportRaw = raw;
-    Intent i =
-        new Intent(Intent.ACTION_CREATE_DOCUMENT)
-            .addCategory(Intent.CATEGORY_OPENABLE)
-            .setType(raw ? "text/csv" : "application/gpx+xml")
-            .putExtra(Intent.EXTRA_TITLE, "startrace-" + t.id + (raw ? ".csv" : ".gpx"));
+    exportFormat = format;
+    return new Intent(Intent.ACTION_CREATE_DOCUMENT)
+        .addCategory(Intent.CATEGORY_OPENABLE)
+        .setType(format.mimeType)
+        .putExtra(Intent.EXTRA_TITLE, "startrace-" + t.id + format.extension);
+  }
+
+  public void export(Store.Track t, TrackExport format) {
+    if (TrackService.active != null && TrackService.active.trackId == t.id) {
+      toast("请结束记录后再导出，以获得一致的完整文件。");
+      return;
+    }
     try {
-      startActivityForResult(i, 5);
+      startActivityForResult(prepareExport(t, format), 5);
     } catch (ActivityNotFoundException ex) {
+      exportId = -1;
       toast("未找到系统文件保存器。");
     }
   }
@@ -633,19 +717,23 @@ public final class MainActivity extends Activity {
   @Override
   protected void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
+    if (request == 5 && result != RESULT_OK) {
+      exportId = -1;
+      return;
+    }
     if (request == 5
         && result == RESULT_OK
         && data != null
         && data.getData() != null
         && exportId >= 0) {
       long id = exportId;
-      boolean raw = exportRaw;
+      TrackExport format = exportFormat;
+      exportId = -1;
       Uri uri = data.getData();
       app.io.execute(() -> {
-        try {
-          OutputStream stream = getContentResolver().openOutputStream(uri, "wt");
+        try (OutputStream stream = getContentResolver().openOutputStream(uri, "wt")) {
           if (stream == null) throw new IOException("无法打开文件");
-          app.store.export(id, stream, raw);
+          app.store.export(id, stream, format);
           app.main.post(() -> toast("导出完成，请妥善保管含精确位置的文件。"));
         } catch (Exception ex) {
           app.main.post(() -> toast("导出失败，请检查保存位置及可用空间。"));
@@ -745,8 +833,47 @@ public final class MainActivity extends Activity {
   }
 
   public void theme() {
-    getPreferences(MODE_PRIVATE).edit().putBoolean("light", !u.light).apply();
+    Preferences.theme(this, u.light ? ThemeMode.DARK : ThemeMode.LIGHT);
     buildRoot();
+  }
+
+  public void selectTheme() {
+    ThemeMode[] modes = ThemeMode.values();
+    String[] labels = Arrays.stream(modes).map(m -> m.label).toArray(String[]::new);
+    new AlertDialog.Builder(this)
+        .setTitle("色彩模式")
+        .setSingleChoiceItems(
+            labels,
+            Preferences.theme(this).ordinal(),
+            (dialog, which) -> {
+              Preferences.theme(this, modes[which]);
+              dialog.dismiss();
+              buildRoot();
+            })
+        .setNegativeButton("取消", null)
+        .show();
+  }
+
+  public void selectRecordingInterval() {
+    String[] labels =
+        Arrays.stream(RecordingCadence.SECONDS).mapToObj(i -> i + " 秒 / 点").toArray(String[]::new);
+    int selected = 0;
+    for (int i = 0; i < RecordingCadence.SECONDS.length; i++)
+      if (RecordingCadence.SECONDS[i] == Preferences.interval(this)) selected = i;
+    new AlertDialog.Builder(this)
+        .setTitle("轨迹点保存间隔")
+        .setSingleChoiceItems(
+            labels,
+            selected,
+            (dialog, which) -> {
+              int seconds = RecordingCadence.SECONDS[which];
+              Preferences.interval(this, seconds);
+              if (TrackService.active != null) TrackService.active.setIntervalSeconds(seconds);
+              dialog.dismiss();
+              render();
+            })
+        .setNegativeButton("取消", null)
+        .show();
   }
 
   public boolean dms() {

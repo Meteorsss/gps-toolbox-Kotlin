@@ -1,8 +1,10 @@
 name: Android APK
 on:
   workflow_dispatch:
-  push:
+  pull_request:
     branches: [main]
+  push:
+    branches: [feature/openfreemap-track-insights]
     paths-ignore: ['**.md', 'docs/**']
 permissions:
   contents: read
@@ -28,6 +30,7 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Restore fixed release signing key
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/feature/openfreemap-track-insights' && github.repository == 'Meteorsss/gps-toolbox'
         env:
           SIGNING_BUNDLE: ${{ secrets.SIGNING_BUNDLE }}
         run: |
@@ -41,22 +44,61 @@ jobs:
           with open(os.environ['GITHUB_ENV'],'a') as f:
               f.write(f'SIGNING_STORE_FILE={path}\nSIGNING_PASSWORD={data["password"]}\n')
           PY
-      - name: Unit tests, Android lint and APK compilation
-        run: gradle --no-daemon :app:testDebugUnitTest :app:lintRelease :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Unit tests, Android lint and debug compilation
+        run: gradle --no-daemon :app:testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Signed preview APK (explicit trusted branch dispatch only)
+        if: env.SIGNING_STORE_FILE != ''
+        run: gradle --no-daemon :app:assembleRelease
       - name: Verify release signature and privacy manifest
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/StarTrace-0.1.2-build-${{ github.run_number }}.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/*.apk | tee dist/signature.txt
-          grep -q 'certificate SHA-256 digest: 8cd33c25b2fd01833a56c0ff2e71a5bcb14d25eaa39046928bca92854edc1098' dist/signature.txt
+          if [ -n "$SIGNING_STORE_FILE" ]; then
+            cp app/build/outputs/apk/release/app-release.apk dist/StarTrace.apk
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/*.apk | tee dist/signature.txt
+            grep -q 'certificate SHA-256 digest: 8cd33c25b2fd01833a56c0ff2e71a5bcb14d25eaa39046928bca92854edc1098' dist/signature.txt
+          else
+            cp app/build/outputs/apk/debug/app-debug.apk dist/StarTrace-PR-debug.apk
+          fi
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump permissions dist/*.apk | tee dist/permissions.txt
-          if grep -q 'android.permission.INTERNET\|android.permission.ACCESS_BACKGROUND_LOCATION' dist/permissions.txt; then exit 1; fi
+          if grep -q 'android.permission.ACCESS_BACKGROUND_LOCATION' dist/permissions.txt; then exit 1; fi
+          grep -q 'android.permission.INTERNET' dist/permissions.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging dist/*.apk > dist/apk-info.txt
+          if [ -n "$SIGNING_STORE_FILE" ]; then
+            python - <<'PY' | tee dist/abi-report.txt
+          import pathlib,struct,zipfile
+          apk=next(pathlib.Path('dist').glob('*.apk'))
+          with zipfile.ZipFile(apk) as z:
+              libs=[n for n in z.namelist() if n.startswith('lib/') and not n.endswith('/')]
+              abis=sorted({n.split('/')[1] for n in libs})
+              assert abis == ['arm64-v8a'], f'Unexpected ABIs: {abis}'
+              for name in libs:
+                  data=z.read(name)
+                  assert data[:4] == b'\x7fELF' and data[4] == 2 and data[5] == 1, f'Not ELF64 LE: {name}'
+                  assert struct.unpack_from('<H',data,18)[0] == 183, f'Not AArch64: {name}'
+                  print(f'{name}: ELF64 AArch64')
+              print(f'PASS: arm64-v8a only; {len(libs)} verified native libraries')
+          PY
+            grep -q "^native-code: 'arm64-v8a'$" dist/apk-info.txt
+          fi
           sha256sum dist/*.apk > dist/SHA256SUMS.txt
           cp README.md dist/README.md
           cp THIRD_PARTY_NOTICES.md dist/THIRD_PARTY_NOTICES.md
+          if [ -n "$SIGNING_STORE_FILE" ]; then
+            mkdir -p release-files
+            cp dist/StarTrace.apk release-files/StarTrace.apk
+            cp README.md release-files/README.md
+            test "$(find release-files -maxdepth 1 -type f | wc -l)" -eq 2
+          fi
+      - uses: actions/upload-artifact@v7.0.2
+        if: env.SIGNING_STORE_FILE != ''
+        with:
+          name: StarTrace-release-files
+          path: release-files/
+          retention-days: 90
+          if-no-files-found: error
       - uses: actions/upload-artifact@v7.0.2
         with:
-          name: StarTrace-installable-apk
+          name: StarTrace-PR-preview-apk
           path: dist/
           retention-days: 90
           if-no-files-found: error

@@ -22,7 +22,11 @@ public final class Store extends SQLiteOpenHelper {
   }
 
   public Store(Context context) {
-    super(context, "startrace.db", null, 1);
+    this(context, "startrace.db");
+  }
+
+  Store(Context context, String name) {
+    super(context, name, null, 2);
     setWriteAheadLoggingEnabled(true);
   }
 
@@ -41,7 +45,9 @@ public final class Store extends SQLiteOpenHelper {
         "CREATE TABLE points(id INTEGER PRIMARY KEY AUTOINCREMENT,track INTEGER NOT NULL REFERENCES"
             + " tracks(id) ON DELETE CASCADE,lat REAL NOT NULL,lon REAL NOT NULL,altitude"
             + " REAL,accuracy REAL,speed REAL,time INTEGER NOT NULL,elapsed INTEGER NOT"
-            + " NULL,segment INTEGER NOT NULL,accepted INTEGER NOT NULL,mock INTEGER NOT NULL)");
+            + " NULL,segment INTEGER NOT NULL,accepted INTEGER NOT NULL,mock INTEGER NOT"
+            + " NULL,vertical_accuracy REAL,msl_altitude REAL,msl_accuracy REAL,speed_accuracy"
+            + " REAL)");
     db.execSQL("CREATE INDEX points_track ON points(track,id)");
     db.execSQL(
         "CREATE TABLE places(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,note TEXT NOT"
@@ -50,7 +56,12 @@ public final class Store extends SQLiteOpenHelper {
 
   @Override
   public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-    throw new IllegalStateException("Missing database migration");
+    if (oldVersion < 2) {
+      db.execSQL("ALTER TABLE points ADD COLUMN vertical_accuracy REAL");
+      db.execSQL("ALTER TABLE points ADD COLUMN msl_altitude REAL");
+      db.execSQL("ALTER TABLE points ADD COLUMN msl_accuracy REAL");
+      db.execSQL("ALTER TABLE points ADD COLUMN speed_accuracy REAL");
+    }
   }
 
   public synchronized void recoverInterrupted() {
@@ -91,6 +102,10 @@ public final class Store extends SQLiteOpenHelper {
     v.put("segment", p.segment);
     v.put("accepted", p.accepted ? 1 : 0);
     v.put("mock", mock ? 1 : 0);
+    if (Double.isFinite(p.verticalAccuracy)) v.put("vertical_accuracy", p.verticalAccuracy);
+    if (Double.isFinite(p.mslAltitude)) v.put("msl_altitude", p.mslAltitude);
+    if (Double.isFinite(p.mslAccuracy)) v.put("msl_accuracy", p.mslAccuracy);
+    if (Double.isFinite(p.speedAccuracy)) v.put("speed_accuracy", p.speedAccuracy);
     getWritableDatabase().insertOrThrow("points", null, v);
   }
 
@@ -135,12 +150,28 @@ public final class Store extends SQLiteOpenHelper {
         c.getLong(c.getColumnIndexOrThrow("time")),
         c.getLong(c.getColumnIndexOrThrow("elapsed")),
         c.getInt(c.getColumnIndexOrThrow("segment")),
-        c.getInt(c.getColumnIndexOrThrow("accepted")) == 1);
+        c.getInt(c.getColumnIndexOrThrow("accepted")) == 1,
+        nullable(c, "vertical_accuracy"),
+        nullable(c, "msl_altitude"),
+        nullable(c, "msl_accuracy"),
+        nullable(c, "speed_accuracy"));
   }
 
   private double nullable(Cursor c, String name) {
     int i = c.getColumnIndexOrThrow(name);
     return c.isNull(i) ? Double.NaN : c.getDouble(i);
+  }
+
+  public synchronized TrackAnalytics.Result analyze(long id, long activeMs, double distance) {
+    TrackAnalytics analysis = new TrackAnalytics();
+    try (Cursor c =
+        getReadableDatabase()
+            .rawQuery(
+                "SELECT * FROM points WHERE track=? ORDER BY id",
+                new String[] {Long.toString(id)})) {
+      while (c.moveToNext()) analysis.add(point(c));
+    }
+    return analysis.finish(distance, activeMs);
   }
 
   public synchronized List<TrackPoint> preview(long id, int max) {
@@ -223,7 +254,17 @@ public final class Store extends SQLiteOpenHelper {
     getWritableDatabase().delete("places", "id=?", new String[] {"" + id});
   }
 
+  private String optional(double value) {
+    return Double.isFinite(value) ? Double.toString(value) : "";
+  }
+
   public synchronized void export(long id, OutputStream stream, boolean raw) throws IOException {
+    export(id, stream, raw ? TrackExport.CSV : TrackExport.GPX);
+  }
+
+  public synchronized void export(long id, OutputStream stream, TrackExport format)
+      throws IOException {
+    boolean raw = format == TrackExport.CSV;
     Track t = track(id);
     if (t == null) throw new IOException("轨迹不存在");
     try (Writer out = new BufferedWriter(new OutputStreamWriter(stream, StandardCharsets.UTF_8));
@@ -231,21 +272,37 @@ public final class Store extends SQLiteOpenHelper {
             getReadableDatabase()
                 .rawQuery(
                     "SELECT * FROM points WHERE track=? "
-                        + (raw ? "" : "AND accepted=1 ")
+                        + (format == TrackExport.GPX ? "AND accepted=1 " : "")
                         + "ORDER BY id",
                     new String[] {"" + id})) {
+      Kml.Exporter kml = format == TrackExport.KML ? new Kml.Exporter(out, t.name) : null;
       if (raw)
         out.write(
-            "latitude_wgs84,longitude_wgs84,ellipsoid_height_m,accuracy_m,speed_mps,utc,elapsed_ms,segment,accepted,mock\n");
-      else out.write(Gpx.header(t.name));
+            "latitude_wgs84,longitude_wgs84,ellipsoid_height_m,accuracy_m,speed_mps,utc,elapsed_ms,segment,accepted,mock,vertical_accuracy_m,msl_altitude_m,msl_accuracy_m,speed_accuracy_mps\n");
+      else if (kml == null) out.write(Gpx.header(t.name));
       int segment = -1;
       while (c.moveToNext()) {
         TrackPoint p = point(c);
-        if (raw) {
+        if (kml != null) {
+          // Include rejected/mock rows in the cursor to preserve a break even in legacy data.
+          if (c.getInt(c.getColumnIndexOrThrow("mock")) == 1)
+            kml.add(
+                new TrackPoint(
+                    p.lat,
+                    p.lon,
+                    p.altitude,
+                    p.accuracy,
+                    p.speed,
+                    p.time,
+                    p.elapsed,
+                    p.segment,
+                    false));
+          else kml.add(p);
+        } else if (raw) {
           out.write(
               String.format(
                   Locale.US,
-                  "%.8f,%.8f,%s,%.2f,%s,%s,%d,%d,%s,%s\n",
+                  "%.8f,%.8f,%s,%.2f,%s,%s,%d,%d,%s,%s,%s,%s,%s,%s\n",
                   p.lat,
                   p.lon,
                   Double.isFinite(p.altitude) ? Double.toString(p.altitude) : "",
@@ -255,7 +312,11 @@ public final class Store extends SQLiteOpenHelper {
                   p.elapsed,
                   p.segment,
                   p.accepted,
-                  c.getInt(c.getColumnIndexOrThrow("mock")) == 1));
+                  c.getInt(c.getColumnIndexOrThrow("mock")) == 1,
+                  optional(p.verticalAccuracy),
+                  optional(p.mslAltitude),
+                  optional(p.mslAccuracy),
+                  optional(p.speedAccuracy)));
         } else {
           if (segment != p.segment) {
             if (segment != -1) out.write("</trkseg>\n");
@@ -265,7 +326,8 @@ public final class Store extends SQLiteOpenHelper {
           out.write(Gpx.point(p));
         }
       }
-      if (!raw) {
+      if (kml != null) kml.finish();
+      else if (!raw) {
         if (segment != -1) out.write("</trkseg>\n");
         out.write(Gpx.footer());
       }

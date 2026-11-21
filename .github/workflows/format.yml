@@ -21,11 +21,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          test "$GITHUB_REF_NAME" = "feature/openfreemap-track-insights" || { echo 'This formatter is scoped to the feature branch'; exit 1; }
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add app/src
           if ! git diff --cached --quiet; then
             git commit -m 'style: format Java sources in GitHub Actions'
-            git push origin HEAD:main
+            git push origin HEAD:"$GITHUB_REF_NAME"
           fi
-          gh workflow run android.yml --ref main
+          gh workflow run android.yml --ref "$GITHUB_REF_NAME"
