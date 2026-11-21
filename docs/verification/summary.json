@@ -1,0 +1,26 @@
+{
+  "verified_commit": "462cf5ada0027bbcc23285d579f3f5b7ee3c2ff4",
+  "upstream_main": "be9c60289fac7e07329784c6680db0494ca13e09",
+  "upstream_pr_1": "defe34f40e192fb8ceb1b2c28cdf16a0cc4f0855",
+  "actions_run": 44890987584,
+  "unit_tests": {
+    "tests": 111,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "android16_instrumentation": {
+    "tests": 23,
+    "failures": 0
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 70,
+    "hints": 8
+  },
+  "app_kotlin_files": 27,
+  "java_source_files": 0,
+  "screenshots_compared": 19,
+  "pixel_identical_excluding_statusbar": 11,
+  "release_signing_configured": false
+}

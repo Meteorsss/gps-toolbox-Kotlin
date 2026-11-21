@@ -1,0 +1,211 @@
+[
+  {
+    "name": "centered-speed-0.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 0,
+    "changed_percent": 0.0,
+    "mean_channel_difference": 0.0
+  },
+  {
+    "name": "centered-speed-1.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 8,
+    "changed_percent": 0.000325,
+    "mean_channel_difference": 1e-06
+  },
+  {
+    "name": "compass.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 16161,
+    "changed_percent": 0.656311,
+    "mean_channel_difference": 0.032933
+  },
+  {
+    "name": "dark-0.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 0,
+    "changed_percent": 0.0,
+    "mean_channel_difference": 0.0
+  },
+  {
+    "name": "dark-1.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 0,
+    "changed_percent": 0.0,
+    "mean_channel_difference": 0.0
+  },
+  {
+    "name": "dark-2.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 0,
+    "changed_percent": 0.0,
+    "mean_channel_difference": 0.0
+  },
+  {
+    "name": "dark-3.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 0,
+    "changed_percent": 0.0,
+    "mean_channel_difference": 0.0
+  },
+  {
+    "name": "diagnostics.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 0,
+    "changed_percent": 0.0,
+    "mean_channel_difference": 0.0
+  },
+  {
+    "name": "edited-place.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 45639,
+    "changed_percent": 1.853436,
+    "mean_channel_difference": 0.689182
+  },
+  {
+    "name": "gcj02-dashboard.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 1604,
+    "changed_percent": 0.06514,
+    "mean_channel_difference": 0.102858
+  },
+  {
+    "name": "independent-speed-session-dual-units.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 17,
+    "changed_percent": 0.00069,
+    "mean_channel_difference": 2e-06
+  },
+  {
+    "name": "light-home.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 14,
+    "changed_percent": 0.000569,
+    "mean_channel_difference": 3e-06
+  },
+  {
+    "name": "map-local-track.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 12763,
+    "changed_percent": 0.518315,
+    "mean_channel_difference": 0.005363
+  },
+  {
+    "name": "map-openfreemap-track.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 0,
+    "changed_percent": 0.0,
+    "mean_channel_difference": 0.0
+  },
+  {
+    "name": "places.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 0,
+    "changed_percent": 0.0,
+    "mean_channel_difference": 0.0
+  },
+  {
+    "name": "satellite-breakdown-fixture.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 0,
+    "changed_percent": 0.0,
+    "mean_channel_difference": 0.0
+  },
+  {
+    "name": "settings.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 11407,
+    "changed_percent": 0.463247,
+    "mean_channel_difference": 0.395304
+  },
+  {
+    "name": "speed.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 0,
+    "changed_percent": 0.0,
+    "mean_channel_difference": 0.0
+  },
+  {
+    "name": "three-mode-settings.png",
+    "size": [
+      1080,
+      2400
+    ],
+    "excluded_status_bar_px": 120,
+    "changed_pixels": 0,
+    "changed_percent": 0.0,
+    "mean_channel_difference": 0.0
+  }
+]

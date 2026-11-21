@@ -1,0 +1,12 @@
+{
+  "java": {
+    "apk_bytes": 57669484,
+    "dex_bytes": 8431292,
+    "native_bytes": 48865476
+  },
+  "kotlin": {
+    "apk_bytes": 57817244,
+    "dex_bytes": 8584068,
+    "native_bytes": 48865476
+  }
+}

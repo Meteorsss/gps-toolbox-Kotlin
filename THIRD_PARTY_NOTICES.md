@@ -67,3 +67,8 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+## Kotlin standard library
+
+Kotlin standard library 2.3.21, Copyright JetBrains s.r.o. and Kotlin Programming Language contributors, is distributed under Apache License 2.0. The complete license is included in docs/licenses/Kotlin-Apache-2.0.txt. Kotlin runtime code is not a separate tracking or networking SDK.
