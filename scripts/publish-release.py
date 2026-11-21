@@ -61,8 +61,11 @@ instrumentation=Path('device-checks/instrumentation.txt').read_text()
 assert re.search(r'OK \(23 tests\)',instrumentation)
 assert not any(x in instrumentation for x in ['FAILURES!!!','INSTRUMENTATION_FAILED','Process crashed'])
 tag=f'kotlin-v0.2.3-build-{run["run_number"]}'
-existing=subprocess.run(['gh','release','view',tag,'--repo',repo],capture_output=True)
-assert existing.returncode!=0,'Refusing to overwrite an existing release'
+existing=[release for release in api(f'repos/{repo}/releases?per_page=100') if release['tag_name']==tag]
+assert len(existing)<=1
+if existing:
+    assert existing[0]['draft'] is True, 'Refusing to overwrite a published release'
+    assert existing[0]['target_commitish']==run['head_sha'], 'Draft belongs to another source commit'
 notes=f"""## 星迹 GPS 工具箱 · Kotlin 版（ARM64）
 
 下载附件 **StarTrace.apk** 安装；README.md 是使用说明。无需下载 GitHub 自动生成的源码压缩包。
@@ -93,16 +96,22 @@ APK 大小：{apk.stat().st_size:,} bytes。
 仅上传 StarTrace.apk 和 README.md；日志、测试报告及截图保留在 Actions。
 """
 Path('release-notes.md').write_text(notes,encoding='utf-8')
-subprocess.run(['gh','release','create',tag,'--repo',repo,'--target',run['head_sha'],'--draft','--prerelease','--title',f'星迹 Kotlin 0.2.3 · build {run["run_number"]}（ARM64）','--notes-file','release-notes.md',str(apk),str(publish/'README.md')],check=True)
-created=api(f'repos/{repo}/releases/tags/{tag}')
+if not existing:
+    subprocess.run(['gh','release','create',tag,'--repo',repo,'--target',run['head_sha'],'--draft','--prerelease','--title',f'星迹 Kotlin 0.2.3 · build {run["run_number"]}（ARM64）','--notes-file','release-notes.md',str(apk),str(publish/'README.md')],check=True)
+# Draft tags may not resolve through /releases/tags; use the release's stable numeric ID.
+matches=[release for release in api(f'repos/{repo}/releases?per_page=100') if release['tag_name']==tag]
+assert len(matches)==1
+created=api(f'repos/{repo}/releases/{matches[0]["id"]}')
+assert created['target_commitish']==run['head_sha']
+assert created['body'].strip()==notes.strip(), 'Refusing to resume an unrelated draft'
 assert created['draft'] is True
 assert {a['name'] for a in created['assets']}=={'StarTrace.apk','README.md'}
 for asset in created['assets']:
     expected_digest=hashlib.sha256((publish/asset['name']).read_bytes()).hexdigest()
     assert asset['size']==(publish/asset['name']).stat().st_size
     assert asset.get('digest')=='sha256:'+expected_digest,(asset['name'],asset.get('digest'))
-subprocess.run(['gh','release','edit',tag,'--repo',repo,'--draft=false','--prerelease','--latest=false'],check=True)
-released=api(f'repos/{repo}/releases/tags/{tag}')
+gh('api','--method','PATCH',f'repos/{repo}/releases/{created["id"]}','-F','draft=false','-F','prerelease=true','-f','make_latest=false')
+released=api(f'repos/{repo}/releases/{created["id"]}')
 assert released['draft'] is False and released['prerelease'] is True
 with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
     out.write(f"## Published\n\n{released['html_url']}\n\n111 JVM tests + 23 Android tests passed. Exactly APK + README attached.\n\nAPK SHA-256: `{sha}`\n")
