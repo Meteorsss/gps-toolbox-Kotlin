@@ -17,6 +17,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v6.3.0
         with:
           distribution: temurin
@@ -36,6 +38,9 @@ jobs:
         run: |
           python - <<'PY'
           import os,json,base64,pathlib
+          if not os.environ.get('SIGNING_BUNDLE'):
+              print('::notice::SIGNING_BUNDLE is not configured; only debug artifacts will be built.')
+              raise SystemExit(0)
           data=json.loads(os.environ['SIGNING_BUNDLE'])
           path=pathlib.Path(os.environ['RUNNER_TEMP'])/'release.p12'
           path.write_bytes(base64.b64decode(data['keystore']))
@@ -126,6 +131,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v8.0.2
         with:
           name: emulator-input

@@ -1,4 +1,7 @@
-plugins { id 'com.android.application' }
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
 android {
     namespace 'com.meteorsss.startrace'
     compileSdk 36
@@ -36,4 +39,38 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.7.0'
     androidTestImplementation 'androidx.test:core:1.7.0'
     androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+}
+kotlin { jvmToolchain(17) }
+
+// Compile the exact, pre-migration Java algorithms into an isolated test-only directory.
+// No Java source or classes are shipped in the app; fixtures come from the preserved git history.
+def baselineDir = layout.buildDirectory.dir('java-baseline')
+tasks.register('compileJavaBaseline') {
+    outputs.dir(baselineDir)
+    doLast {
+        def dest = baselineDir.get().asFile
+        dest.mkdirs()
+        def names = ['Geo', 'Gcj02', 'Gpx', 'Kml', 'TrackPoint', 'TrackFilter',
+                     'TrackAnalytics', 'TrackGeometry', 'SpeedSession', 'RecordingCadence',
+                     'HeadingSmoother', 'SatelliteStats', 'ThemeMode', 'TrackExport']
+        def sources = []
+        names.each { name ->
+            def output = new ByteArrayOutputStream()
+            exec {
+                workingDir rootDir
+                commandLine 'git', 'show', "defe34f40e192fb8ceb1b2c28cdf16a0cc4f0855:app/src/main/java/com/meteorsss/startrace/${name}.java"
+                standardOutput = output
+            }
+            def source = new File(dest, "src/${name}.java")
+            source.parentFile.mkdirs()
+            source.setText(output.toString('UTF-8'), 'UTF-8')
+            sources.add(source.absolutePath)
+        }
+        def classes = new File(dest, 'classes'); classes.mkdirs()
+        exec { commandLine(["${System.getProperty('java.home')}/bin/javac", '-encoding', 'UTF-8', '-d', classes.absolutePath] + sources) }
+    }
+}
+tasks.withType(Test).configureEach {
+    dependsOn 'compileJavaBaseline'
+    systemProperty 'java.baseline.classes', baselineDir.get().dir('classes').asFile.absolutePath
 }
