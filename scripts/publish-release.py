@@ -53,14 +53,17 @@ for result in results:
     assert all(int(suite.get(k,'0'))==0 for k in ['errors','failures','skipped']),result
     count+=int(suite.get('tests','0'))
     parity=parity or (suite.get('name','').endswith('MigrationParityTest') and int(suite.get('tests','0'))==4)
-assert count==111 and parity,(count,parity)
+expectations=json.loads(subprocess.check_output(['git','show',run['head_sha']+':config/test-expectations.json']))
+assert count==expectations['unit_tests'] and parity,(count,parity)
 lint=list(Path('build-reports').rglob('lint-results-release.xml'))
 assert len(lint)==1
 assert not any(issue.get('severity') in ['Error','Fatal'] for issue in ET.parse(lint[0]).getroot().findall('issue'))
 instrumentation=Path('device-checks/instrumentation.txt').read_text()
-assert re.search(r'OK \(23 tests\)',instrumentation)
+assert f"OK ({expectations['device_tests']} tests)" in instrumentation
+assert 'LocationContinuityTest' in instrumentation
 assert not any(x in instrumentation for x in ['FAILURES!!!','INSTRUMENTATION_FAILED','Process crashed'])
-tag=f'kotlin-v0.2.3-build-{run["run_number"]}'
+release_version=report['version_name'].removesuffix('-pr')
+tag=f'kotlin-v{release_version}-build-{run["run_number"]}'
 existing=[release for release in api(f'repos/{repo}/releases?per_page=100') if release['tag_name']==tag]
 assert len(existing)<=1
 if existing:
@@ -70,15 +73,20 @@ notes=f"""## 星迹 GPS 工具箱 · Kotlin 版（ARM64）
 
 下载附件 **StarTrace.apk** 安装；README.md 是使用说明。无需下载 GitHub 自动生成的源码压缩包。
 
-### 安装说明（新签名）
+### 安装与升级
 - 这是用户明确要求的新固定发布签名，**不能覆盖原 Java 签名版**。首次安装请先卸载原版；卸载会删除其本地数据。
-- 今后的 Kotlin 版继续使用本仓库同一签名，可正常覆盖更新；不要删除或重新初始化 SIGNING_BUNDLE。
+- **已安装 Kotlin build 12 的用户可直接覆盖安装，无需卸载，保留本地轨迹。**本版沿用同一固定签名；不要删除或重新初始化 SIGNING_BUNDLE。
 - Android 13 及以上，仅 arm64-v8a，适用于红米 K70 的硬件架构。包名 {report['package']}。
 - APK versionName={report['version_name']}；versionCode={report['version_code']}；不是 debug 包。
 
 ### 功能与验证
 - 以原 main + PR #1 最新代码为基线迁移为 Kotlin，保留地图、轨迹统计、GPX/KML/CSV 导出、记录间隔、三主题和独立测速。
-- 本次 GitHub Actions 构建：**111 项单元测试通过，23 项 Android 16 模拟器测试通过，Lint 0 错误**。
+- 修复仪表→地图→返回、页面重建导致定位订阅反复停止/清空位置的问题；真实过期位置仍显示过期，不伪造新定位。
+- 新增“后台持续定位”开关、常驻通知与停止按钮，不开始记录时也能在桌面继续获取位置，不自动保存轨迹。
+- 新增 ACCESS_BACKGROUND_LOCATION 权限声明及“始终允许”说明入口：在系统设置→权限→位置信息中选择始终允许并保留精确位置。授权本身不会自动开启后台服务。
+- 进入仪表页或设置页开启后台持续定位；轨迹记录仍独立运行，关闭持续定位不会停止已有记录。
+- 本次 GitHub Actions 构建：**{count} 项单元测试通过，{expectations['device_tests']} 项 Android 16 模拟器测试通过，Lint 0 错误**。新增定位切页/返回桌面/后台记录/通知停止/权限可拒绝回归。
+- 持续定位会耗电；不静默申请权限、不申请开机自启，也不能绕过用户强制停止或厂商电池管理。
 - 发布签名、ARM64 ELF 原生库、16KB ZIP 对齐、包名和隐私权限已检查。
 - 尚未进行红米 K70 / 澎湃 OS 3 真机长期熄屏、耗电与卫星精度验收，因此标为 Pre-release。
 
@@ -97,7 +105,7 @@ APK 大小：{apk.stat().st_size:,} bytes。
 """
 Path('release-notes.md').write_text(notes,encoding='utf-8')
 if not existing:
-    subprocess.run(['gh','release','create',tag,'--repo',repo,'--target',run['head_sha'],'--draft','--prerelease','--title',f'星迹 Kotlin 0.2.3 · build {run["run_number"]}（ARM64）','--notes-file','release-notes.md',str(apk),str(publish/'README.md')],check=True)
+    subprocess.run(['gh','release','create',tag,'--repo',repo,'--target',run['head_sha'],'--draft','--prerelease','--title',f'星迹 Kotlin {release_version} · build {run["run_number"]}（ARM64）','--notes-file','release-notes.md',str(apk),str(publish/'README.md')],check=True)
 # Draft tags may not resolve through /releases/tags; use the release's stable numeric ID.
 matches=[release for release in api(f'repos/{repo}/releases?per_page=100') if release['tag_name']==tag]
 assert len(matches)==1
@@ -114,5 +122,5 @@ gh('api','--method','PATCH',f'repos/{repo}/releases/{created["id"]}','-F','draft
 released=api(f'repos/{repo}/releases/{created["id"]}')
 assert released['draft'] is False and released['prerelease'] is True
 with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
-    out.write(f"## Published\n\n{released['html_url']}\n\n111 JVM tests + 23 Android tests passed. Exactly APK + README attached.\n\nAPK SHA-256: `{sha}`\n")
+    out.write(f"## Published\n\n{released['html_url']}\n\n{count} JVM tests + {expectations['device_tests']} Android tests passed. Exactly APK + README attached.\n\nAPK SHA-256: `{sha}`\n")
 print(released['html_url'])

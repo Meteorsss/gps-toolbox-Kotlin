@@ -25,7 +25,7 @@ permissions=command('aapt','dump','permissions',apk)
 badging=command('aapt','dump','badging',apk)
 (dist/'permissions.txt').write_text(permissions)
 (dist/'apk-info.txt').write_text(badging)
-assert 'android.permission.ACCESS_BACKGROUND_LOCATION' not in permissions
+assert 'android.permission.ACCESS_BACKGROUND_LOCATION' in permissions
 assert 'android.permission.INTERNET' in permissions
 match=re.search(r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'",badging)
 assert match, 'Package metadata missing'

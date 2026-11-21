@@ -56,4 +56,9 @@ object Preferences {
             .putInt("record-interval-seconds", RecordingCadence.Companion.sanitize(seconds))
             .apply()
     }
+    fun backgroundLocation(c: Context): Boolean = settings(c).getBoolean("background-location-enabled", false)
+
+    fun backgroundLocation(c: Context, enabled: Boolean) {
+        settings(c).edit().putBoolean("background-location-enabled", enabled).apply()
+    }
 }

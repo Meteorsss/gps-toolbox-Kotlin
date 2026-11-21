@@ -276,6 +276,7 @@ class MainActivity : Activity() {
                     else
                         if (e!!.location != null) "○  位置已过期 · " + e!!.age() / 1000 + " 秒未更新" else "○  正在等待卫星定位"
         val t: TrackService? = TrackService.Companion.active
+        if (LocationHoldService.active != null) state += "   /   后台定位已开启"
         if (t != null) state += "   /   " + (if (t.paused) "记录已暂停" else "记录中")
         status!!.setText(state)
         status!!.setTextColor(if (e!!.fresh() && !e!!.location!!.isMock()) u!!.accent else u!!.warning)
@@ -288,7 +289,9 @@ class MainActivity : Activity() {
         if (speedSession != null) speedSession!!.resume(SystemClock.elapsedRealtime())
         Preferences.applyWindow(this, u!!.light)
         e!!.observe(observer)
-        e!!.setVisible(true)
+        e.reconcile()
+        BackgroundLocation.resumeIfEnabled(this)
+        e.setCompassActive(compassViews.isNotEmpty())
         for (view in compassViews) view.setActive(true)
         serviceKey = key()
         app!!.main.removeCallbacks(tick)
@@ -298,10 +301,10 @@ class MainActivity : Activity() {
     override fun onPause() {
         if (speedSession != null) speedSession!!.pause(SystemClock.elapsedRealtime())
         resumed = false
+        e.setCompassActive(false)
         for (view in compassViews) view.setActive(false)
         app!!.main.removeCallbacks(tick)
         e!!.unobserve(observer)
-        e!!.setVisible(false)
         super.onPause()
     }
 
@@ -334,7 +337,7 @@ class MainActivity : Activity() {
         }
         AlertDialog.Builder(this)
             .setTitle("启用精确定位")
-            .setMessage("星迹使用卫星位置显示坐标和记录轨迹。数据仅保存在手机上，不申请始终允许位置。请在下一步选择精确位置。 ")
+            .setMessage("星迹使用卫星位置显示坐标和记录轨迹。数据仅保存在手机上。请先选择精确位置；如需返回桌面后继续定位，可再开启后台持续定位，并按需设置始终允许。")
             .setPositiveButton(
                 "继续",
                 DialogInterface.OnClickListener { d: DialogInterface?, w: Int ->
@@ -399,6 +402,7 @@ class MainActivity : Activity() {
 
     override fun onRequestPermissionsResult(code: Int, permissions: Array<String>, grants: IntArray) {
         super.onRequestPermissionsResult(code, permissions!!, grants!!)
+        if (BackgroundLocation.onPermissionResult(this, code)) { render(); return }
         e!!.reconcile()
         if (code == 1 && !e!!.precise()) toast("未获得精确位置权限。可在应用设置中开启。")
         if (code == 2 && pendingRecord) {

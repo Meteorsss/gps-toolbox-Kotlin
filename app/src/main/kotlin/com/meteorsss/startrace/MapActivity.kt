@@ -726,6 +726,7 @@ class MapActivity : Activity() {
 
     override fun onRequestPermissionsResult(request: Int, permissions: Array<String>, results: IntArray) {
         super.onRequestPermissionsResult(request, permissions!!, results!!)
+        if (BackgroundLocation.onPermissionResult(this, request)) return
         app!!.engine.reconcile()
         updatePosition()
     }
@@ -742,7 +743,8 @@ class MapActivity : Activity() {
         Preferences.applyWindow(this, ui!!.light)
         app!!.engine.setCompassActive(false)
         app!!.engine.observe(fixObserver)
-        app!!.engine.setVisible(true)
+        app.engine.reconcile()
+        BackgroundLocation.resumeIfEnabled(this)
         if (mapView != null) mapView!!.onResume()
         handler.post(tick)
     }
@@ -751,7 +753,6 @@ class MapActivity : Activity() {
         resumed = false
         handler.removeCallbacks(tick)
         app!!.engine.unobserve(fixObserver)
-        app!!.engine.setVisible(false)
         if (mapView != null) mapView!!.onPause()
         super.onPause()
     }

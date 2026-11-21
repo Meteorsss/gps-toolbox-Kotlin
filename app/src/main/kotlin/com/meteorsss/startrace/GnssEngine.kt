@@ -35,6 +35,17 @@ class GnssEngine(private val app: App) : LocationListener, SensorEventListener {
     private val observers: MutableSet<Observer> = HashSet<Observer>()
     private var visible = false
     private var recording = false
+    private var backgroundHold = false
+    var subscriptionStarts: Int = 0
+        private set
+
+    fun locationSubscribed(): Boolean = registered
+
+    fun setBackgroundHold(on: Boolean) {
+        backgroundHold = on
+        reconcile()
+    }
+
     private var registered = false
     private var sensorRegistered = false
     private var compassActive = false
@@ -138,11 +149,12 @@ class GnssEngine(private val app: App) : LocationListener, SensorEventListener {
     }
 
     fun reconcile() {
-        val wanted = (visible || recording) && precise()
+        val wanted = (visible || recording || backgroundHold) && precise()
         if (wanted && !registered) {
             started = SystemClock.elapsedRealtime()
             firstFix = -1
-            location = null
+            // Retain the last actual fix across a genuine stop/start. fresh()/age() still
+            // reject stale positions; never relabel cached data as a new observation.
             problem = ""
             try {
                 manager.requestLocationUpdates(
@@ -151,6 +163,7 @@ class GnssEngine(private val app: App) : LocationListener, SensorEventListener {
                 statusRegistered = manager.registerGnssStatusCallback(app.getMainExecutor(), callback)
                 if (!statusRegistered) problem = "系统未接受卫星状态订阅；计数暂不可用"
                 registered = true
+                subscriptionStarts++
             } catch (e: SecurityException) {
                 manager.removeUpdates(this)
                 manager.unregisterGnssStatusCallback(callback)

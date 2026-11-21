@@ -130,6 +130,9 @@ object Screens {
             u.gap(b, 14)
         }
         button(a, b, "打开地图 · 当前位置", Runnable { a.openMap(-1) })
+        val background = u.button("", false, Runnable { BackgroundLocation.show(a) })
+        a.bind(background, Supplier { "后台持续定位：" + BackgroundLocation.status(a) + "（点击设置）" })
+        b.addView(background)
         val hero = u.panel()
         val speedLabel = u.text("当前速度 · LIVE SPEED", 12, u.accent)
         speedLabel.setTag("dashboard-speed-label")
@@ -865,6 +868,12 @@ object Screens {
             a.body,
             if (a.dms()) "坐标显示：度分秒（点击切换）" else "坐标显示：十进制度（点击切换）",
             Runnable { a.toggleDms() })
+        val background = u.button("", false, Runnable { BackgroundLocation.show(a) })
+        a.bind(background, Supplier { "后台持续定位：" + BackgroundLocation.status(a) })
+        a.body.addView(background)
+        val always = u.button("", false, Runnable { BackgroundLocation.showAlwaysPermission(a) })
+        a.bind(always, Supplier { "始终允许定位：" + (if (BackgroundLocation.alwaysAllowed(a)) "已授权" else "未授权（点击设置）") })
+        a.body.addView(always)
         button(a, a.body, "定位与通知权限", Runnable { a.appSettings() })
         button(a, a.body, "在线地图隐私 / 撤回同意", Runnable { a.mapPrivacy() })
         button(a, a.body, "第三方许可 · 离线坐标转换", Runnable { a.thirdPartyNotices() })
@@ -887,7 +896,7 @@ object Screens {
         u.gap(privacy, 10)
         u.note(
             privacy,
-            ("无账号、广告或分析 SDK。可选在线地图会联网获取底图，须先同意；轨迹仍只保存本机。未申请后台始终定位。只有手动开始轨迹后，才使用前台服务继续记录。\n\n"
+            ("无账号、广告或分析 SDK。可选在线地图会联网获取底图，须先同意；轨迹仍只保存本机。可选择始终允许定位。主动开启后台持续定位或开始轨迹后，使用带通知的前台服务；不自动保存未开始记录的位置，可随时关闭。\n\n"
                     + "导出文件包含精确位置，请谨慎分享。卸载应用会删除本地数据。GPX 用于通用轨迹，KML 用于 Google Earth / 我的地图，CSV"
                     + " 用于保留全部原始点。\n\n"
                     + "星迹 "

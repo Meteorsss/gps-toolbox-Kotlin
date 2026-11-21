@@ -29,10 +29,10 @@ jobs:
           java=[p for p in paths if p.endswith('.java')]
           kotlin=[p for p in paths if p.endswith('.kt')]
           assert not java, java
-          assert len(kotlin)==45, len(kotlin)
+          assert len(kotlin)>=45, len(kotlin)
           assert 'Java' not in data, data
           assert max(data,key=lambda key:data[key]['size'])=='Kotlin', data
-          assert len(data['Kotlin']['files'])==45, data['Kotlin']
+          assert len(data['Kotlin']['files'])==len(kotlin), data['Kotlin']
           rules=[line for line in pathlib.Path('.gitattributes').read_text().splitlines() if line.strip() and not line.lstrip().startswith('#')]
           assert not rules, 'This audit requires automatic detection, no attribute rules'
           result={'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'kotlin_files':len(kotlin),'java_files':0,'languages':{k:{key:v[key] for key in ['size','percentage']} for k,v in data.items()},'language_overrides':False}
