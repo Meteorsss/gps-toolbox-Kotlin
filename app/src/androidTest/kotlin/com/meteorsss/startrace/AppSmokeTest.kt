@@ -394,7 +394,7 @@ class AppSmokeTest {
                         a.app.store.places().stream().filter { x: Place? -> x!!.id == id[0] }.findFirst().get()
                     created[0] = original[0]!!.time
                     a.navigate("places")
-                    dialog[0] = a.editPlaceDialog(original[0])
+                    dialog[0] = a.editPlaceDialog(original[0]!!)
                 })
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 awaitActivity(
@@ -416,7 +416,7 @@ class AppSmokeTest {
                         "旧名称",
                         a!!.app.store.places().stream().filter { x: Place? -> x!!.id == id[0] }.findFirst().get().name
                     )
-                    dialog[0] = a.editPlaceDialog(original[0])
+                    dialog[0] = a.editPlaceDialog(original[0]!!)
                 })
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 awaitActivity(
