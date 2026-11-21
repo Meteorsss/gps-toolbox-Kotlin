@@ -69,7 +69,7 @@ class LocationContinuityTest {
             app.stopService(Intent(app, LocationHoldService::class.java))
             app.stopService(Intent(app, TrackService::class.java))
             ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED)
-                .filterIsInstance<MapActivity>().forEach { it.finish() }
+                .filter { it is MainActivity || it is MapActivity }.forEach { it.finish() }
         }
         await("services stopped") { LocationHoldService.active == null && TrackService.active == null }
         tracks.forEach { app.store.delete(it) }
@@ -187,7 +187,16 @@ class LocationContinuityTest {
                 assertEquals(31.00005, app.engine.location!!.latitude, .00000001)
                 assertEquals(count, app.store.tracks().size)
             }
-            scenario.onActivity { it.navigate("settings") }
+            main {
+                // A launcher intent may recreate the task. Check/control the actual visible page,
+                // not the stopped Activity retained by ActivityScenario.
+                ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED)
+                    .filterIsInstance<MainActivity>().single().navigate("settings")
+            }
+            await("visible settings page") {
+                ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED)
+                    .filterIsInstance<MainActivity>().single().visibleText().contains("始终允许定位")
+            }
             shot("background-location-settings")
         }
     }
