@@ -11,7 +11,7 @@ enum class ThemeMode(val label: String) {
     }
 
     companion object {
-        fun restore(value: String, hasLegacy: Boolean, legacyLight: Boolean): ThemeMode {
+        fun restore(value: String?, hasLegacy: Boolean, legacyLight: Boolean): ThemeMode {
             if (value != null) {
                 try {
                     return valueOf(value)

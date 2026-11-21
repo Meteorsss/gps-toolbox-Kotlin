@@ -2,7 +2,7 @@ package com.meteorsss.startrace
 
 import android.content.Intent
 import android.graphics.Typeface
-import android.location!!.GnssStatus
+import android.location.GnssStatus
 import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
@@ -501,7 +501,7 @@ object Screens {
         u.note(b, "距离经过抗漂移过滤，是估计值。卸载会删除本地记录，请先导出备份。")
     }
 
-    private fun status(s: String): String {
+    private fun status(s: String?): String {
         when (s) {
             "recording" -> return "记录中"
             "paused" -> return "已暂停"
@@ -576,7 +576,7 @@ object Screens {
             panel.addView(u.title(p.name, 19))
             u.gap(panel, 8)
             panel.addView(u.text(f("%.6f, %.6f", p.lat, p.lon), 13, u.muted))
-            if (!p.note.isEmpty()) {
+            if (!p.note!!.isEmpty()) {
                 u.gap(panel, 7)
                 panel.addView(u.text(p.note, 13, u.muted))
             }

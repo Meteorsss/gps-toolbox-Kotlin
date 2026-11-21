@@ -2,8 +2,8 @@ package com.meteorsss.startrace
 
 import android.Manifest
 import android.graphics.Bitmap
-import android.location!!.Location
-import android.location!!.LocationManager
+import android.location.Location
+import android.location.LocationManager
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.view.Gravity

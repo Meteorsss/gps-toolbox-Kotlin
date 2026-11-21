@@ -4,8 +4,8 @@ import android.app.AlertDialog
 import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Bitmap
-import android.location!!.GnssStatus
-import android.location!!.Location
+import android.location.GnssStatus
+import android.location.Location
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.view.View

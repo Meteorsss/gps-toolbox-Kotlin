@@ -724,7 +724,7 @@ class MapActivity : Activity() {
         Toast.makeText(this, text, Toast.LENGTH_LONG).show()
     }
 
-    override fun onRequestPermissionsResult(request: Int, permissions: Array<String>, results: IntArray?) {
+    override fun onRequestPermissionsResult(request: Int, permissions: Array<String>, results: IntArray) {
         super.onRequestPermissionsResult(request, permissions!!, results!!)
         app!!.engine.reconcile()
         updatePosition()

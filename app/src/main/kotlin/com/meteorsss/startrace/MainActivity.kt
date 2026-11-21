@@ -7,7 +7,7 @@ import android.content.*
 import android.content.DialogInterface.OnShowListener
 import android.content.pm.PackageManager
 import android.graphics.Insets
-import android.location!!.Location
+import android.location.Location
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -430,7 +430,7 @@ class MainActivity : Activity() {
         copyCoordinate(text, "WGS84")
     }
 
-    private fun copyCoordinate(text: String, system: String) {
+    private fun copyCoordinate(text: String?, system: String) {
         getSystemService<ClipboardManager?>(ClipboardManager::class.java)!!
             .setPrimaryClip(ClipData.newPlainText(system + " 坐标", text))
         toast("已复制，坐标系 " + system + "。")
@@ -489,7 +489,7 @@ class MainActivity : Activity() {
         placeDialog(l!!.getLatitude(), l.getLongitude())
     }
 
-    private fun input(form: LinearLayout, hint: String, value: String, numeric: Boolean): EditText {
+    private fun input(form: LinearLayout, hint: String, value: String?, numeric: Boolean): EditText {
         val field = EditText(this)
         field.setTextColor(u!!.text)
         field.setHintTextColor(u!!.muted)
@@ -727,11 +727,11 @@ class MainActivity : Activity() {
             .show()
     }
 
-    fun export(t: Track, raw: Boolean) {
+    fun export(t: Track?, raw: Boolean) {
         export(t, if (raw) TrackExport.CSV else TrackExport.GPX)
     }
 
-    fun prepareExport(t: Track, format: TrackExport): Intent? {
+    fun prepareExport(t: Track?, format: TrackExport): Intent? {
         exportId = t!!.id
         exportFormat = format
         return Intent(Intent.ACTION_CREATE_DOCUMENT)
@@ -740,7 +740,7 @@ class MainActivity : Activity() {
             .putExtra(Intent.EXTRA_TITLE, "startrace-" + t.id + format.extension)
     }
 
-    fun export(t: Track, format: TrackExport) {
+    fun export(t: Track?, format: TrackExport) {
         if (TrackService.Companion.active != null && TrackService.Companion.active!!.trackId == t.id) {
             toast("请结束记录后再导出，以获得一致的完整文件。")
             return

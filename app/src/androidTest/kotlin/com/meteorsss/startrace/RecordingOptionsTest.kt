@@ -4,7 +4,7 @@ import android.app.UiModeManager
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
-import android.location!!.Location
+import android.location.Location
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.view.Gravity

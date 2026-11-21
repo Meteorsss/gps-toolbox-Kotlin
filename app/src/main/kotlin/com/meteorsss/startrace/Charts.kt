@@ -58,7 +58,7 @@ class Charts(
     }
 
     private fun label(
-        c: Canvas, text: String, x: Float, y: Float, color: Int, size: Int, align: Align?
+        c: Canvas, text: String?, x: Float, y: Float, color: Int, size: Int, align: Align?
     ) {
         p!!.setStyle(Paint.Style.FILL)
         p.setTextSize(u.dp(size.toFloat()).toFloat())

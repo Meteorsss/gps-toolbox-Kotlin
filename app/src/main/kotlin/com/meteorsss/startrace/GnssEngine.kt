@@ -3,10 +3,10 @@ package com.meteorsss.startrace
 import android.Manifest
 import android.content.pm.PackageManager
 import android.hardware.*
-import android.location!!.GnssStatus
-import android.location!!.Location
-import android.location!!.LocationListener
-import android.location!!.LocationManager
+import android.location.GnssStatus
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Looper
 import android.os.SystemClock
 import android.view.Surface

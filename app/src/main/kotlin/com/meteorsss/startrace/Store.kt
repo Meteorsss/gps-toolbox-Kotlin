@@ -238,7 +238,7 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
     }
 
     @Synchronized
-    fun savePlace(name: String, note: String, lat: Double, lon: Double): Long {
+    fun savePlace(name: String?, note: String?, lat: Double, lon: Double): Long {
         require(Geo.valid(lat, lon)) { "Invalid coordinates" }
         val v: ContentValues = ContentValues()
         v!!.put("name", name)
@@ -268,7 +268,7 @@ class Store internal constructor(context: Context?, name: String?) : SQLiteOpenH
     }
 
     @Synchronized
-    fun updatePlace(id: Long, name: String, note: String) {
+    fun updatePlace(id: Long, name: String?, note: String) {
         val title = if (name == null) "" else name.trim { it <= ' ' }
         require(!title.isEmpty()) { "地点名称不能为空" }
         require(!(title.length > 100 || note == null || note.length > 2000)) { "名称最多100字，备注最多2000字" }

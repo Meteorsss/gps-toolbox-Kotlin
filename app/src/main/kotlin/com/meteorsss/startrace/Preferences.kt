@@ -12,7 +12,7 @@ object Preferences {
         return c.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
     }
 
-    fun theme(c: Context): ThemeMode? {
+    fun theme(c: Context): ThemeMode {
         val p = settings(c)
         return ThemeMode.Companion.restore(
             p.getString("theme-mode", null), p.contains("light"), p.getBoolean("light", false)
