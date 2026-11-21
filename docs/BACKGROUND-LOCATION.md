@@ -33,3 +33,15 @@ Android 11+ 的“始终允许”需在设置页选择。定位前台服务应�
 全部位置是合成测试输入；不上传用户位置。不声称已完成红米K70长时间熄屏或耗电真机验收。
 
 发布门禁：原111项JVM测试（含4项Java/Kotlin差分）+31项Android16模拟器测试，Lint无错误，原固定发布签名、纯ARM64、APK哈希与16KB ZIP对齐。
+
+## 发布验证结果
+
+- 成功签名构建：44902095885，代码提交 `5df69976508d0d07a063303596f5ec43d1fe2ed0`。
+- 111 项单元测试、31 项 Android 16 设备测试通过，0失败/跳过；Lint0错误（70警告/8提示）。
+- 本文列出的8个新增定位场景全部通过。
+- versionName=0.2.4-pr、versionCode=100016，纯ARM64，不可调试，16KB ZIP对齐通过。
+- 与 Kotlin build12 同包名同证书，可覆盖安装；未修改数据库结构。
+- 发布：https://github.com/Meteorsss/gps-toolbox-Kotlin/releases/tag/kotlin-v0.2.4-build-16，发布工作流44902949096成功。
+- 从公开Release重新下载APK/README，哈希与构建产物及Release资产digest一致。
+- APK SHA256：`0f2004a31ec66bd81aecd11a97ece79e3460f676c6172727eb56bb40b692f774`。
+- 未声称红米K70长时间熄屏、耗电和强制停止后持续定位已经通过。

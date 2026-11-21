@@ -1,0 +1,38 @@
+{
+  "release": true,
+  "package": "com.meteorsss.startrace",
+  "version_code": 100016,
+  "version_name": "0.2.4-pr",
+  "source_commit": "5df69976508d0d07a063303596f5ec43d1fe2ed0",
+  "run_id": 44902095885,
+  "certificate_sha256": "d5aa7ea6d604420beba5909e4b6a84b152c79e44d2348fa15f1f0f09267de95a",
+  "debuggable": false,
+  "abis": [
+    "arm64-v8a"
+  ],
+  "native_libraries": [
+    "lib/arm64-v8a/libmaplibre.so"
+  ],
+  "zip_alignment_16k": true,
+  "apk_sha256": "0f2004a31ec66bd81aecd11a97ece79e3460f676c6172727eb56bb40b692f774",
+  "apk_bytes": 20291951,
+  "release_url": "https://github.com/Meteorsss/gps-toolbox-Kotlin/releases/tag/kotlin-v0.2.4-build-16",
+  "published_at": "2026-11-21T12:15:16Z",
+  "publish_run": 44902949096,
+  "unit_tests": {
+    "tests": 111,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "android16_tests": 31,
+  "new_location_regressions": 8,
+  "lint_errors": 0,
+  "same_certificate_as_kotlin_build_12": true,
+  "public_download_hash_verified": true,
+  "background_permission_declared": true,
+  "always_permission_requires_user_settings": true,
+  "continuous_location_default": false,
+  "device_test_locations": "synthetic only",
+  "redmi_k70_long_background_tested": false
+}
