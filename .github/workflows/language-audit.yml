@@ -16,10 +16,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/language-audit"
-          docker pull ghcr.io/github-linguist/linguist:9.7.0
-          docker image inspect ghcr.io/github-linguist/linguist:9.7.0 --format '{{json .RepoDigests}}' > "$RUNNER_TEMP/language-audit/image-digests.json"
-          docker run --rm -v "$PWD:/repo:ro" -w /repo ghcr.io/github-linguist/linguist:9.7.0 github-linguist --version
-          docker run --rm -v "$PWD:/repo:ro" -w /repo ghcr.io/github-linguist/linguist:9.7.0 github-linguist --breakdown --json | tee "$RUNNER_TEMP/language-audit/linguist.json"
+          docker pull ghcr.io/github-linguist/linguist@sha256:cfe77ac6fe1d7d46c2e705922f53ddb8260f2bbe37ccceb8d9ef13ddce151fb6
+          docker image inspect ghcr.io/github-linguist/linguist@sha256:cfe77ac6fe1d7d46c2e705922f53ddb8260f2bbe37ccceb8d9ef13ddce151fb6 --format '{{json .RepoDigests}}' > "$RUNNER_TEMP/language-audit/image-digests.json"
+          docker run --rm -v "$PWD:/repo:ro" -w /repo ghcr.io/github-linguist/linguist@sha256:cfe77ac6fe1d7d46c2e705922f53ddb8260f2bbe37ccceb8d9ef13ddce151fb6 github-linguist --version
+          docker run --rm -v "$PWD:/repo:ro" -w /repo ghcr.io/github-linguist/linguist@sha256:cfe77ac6fe1d7d46c2e705922f53ddb8260f2bbe37ccceb8d9ef13ddce151fb6 github-linguist --breakdown --json | tee "$RUNNER_TEMP/language-audit/linguist.json"
       - name: Assert Kotlin implementation without language-label overrides
         run: |
           python - <<'PY'
