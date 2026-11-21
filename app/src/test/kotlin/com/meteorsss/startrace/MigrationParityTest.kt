@@ -30,7 +30,7 @@ class MigrationParityTest {
         fun point(lat: Double, lon: Double, height: Double, accuracy: Double, speed: Double, time: Long, elapsed: Long, segment: Int, accepted: Boolean, vertical: Double = 2.0, msl: Double = Double.NaN, mslError: Double = Double.NaN, speedError: Double = 0.5): Any =
             create("TrackPoint", lat, lon, height, accuracy, speed, time, elapsed, segment, accepted, vertical, msl, mslError, speedError)
     }
-    private val baseline = World(URLClassLoader(arrayOf(Paths.get(System.getProperty("java.baseline.classes")).toUri().toURL()), ClassLoader.getPlatformClassLoader()))
+    private val baseline = World(URLClassLoader(arrayOf(Paths.get(System.getProperty("java.baseline.classes")).toUri().toURL()), ClassLoader.getSystemClassLoader().parent))
     private val migrated = World(javaClass.classLoader)
 
     private fun same(a: Any?, b: Any?) {

@@ -1,16 +1,26 @@
-# 星迹 · GPS 工具箱
+# 星迹 · GPS 工具箱 — Kotlin 版
 
-个人自用的 Android 原生定位工具。目标设备：红米 K70 / Android 16 / 澎湃 OS 3。
+本仓库是 `Meteorsss/gps-toolbox` 的 Kotlin 语言迁移版，不是重新设计的应用。
 
-**代码在 GitHub，测试及编译只在 GitHub 托管 Actions 上运行。** 不需要电脑安装开发环境。当前分支为 0.2.3-pr 独立自动测速预览；仅通过 Pull Request 提议，尚未合并 main。
+- 基线：原 `main` **be9c602** + 唯一未合并 PR **#1** 的最新提交 **defe34f**（核对日期：2026-11-21）。
+- 原仓库的 main 与 PR 均未修改；合并仅发生在本仓库，并保留完整原始提交历史。
+- 应用实现、单元测试和 Android 设备测试均使用 Kotlin；没有残留应用 Java 源文件。
+- 保留原生 View/Canvas 界面，不引入 Compose、不重做布局；包名、图标、文案、主题、数据库 v2、偏好键、导出格式和算法口径保持原样。
+- 地图、KML 导出、记录间隔、三种主题、独立自动测速等 PR 后续功能一并保留。不是只迁移原 main 的旧功能。
 
-## 安装
+详情见 [迁移与验证说明](docs/KOTLIN-MIGRATION.md)。以下版本历史是原 Java 项目的历史记录，不表示原 PR 已被合并。
 
-本 PR 预览版仅提供 **ARM64（arm64-v8a）** 固定发布签名包，可在红米 K70 上覆盖安装。经所有者明确要求，本次也发布到 [GitHub Releases](https://github.com/Meteorsss/gps-toolbox/releases)，标记为 **Pre-release**，不合并 PR 或修改 main。
+## 安装与签名（重要）
 
-优先在对应 Pre-release 的 Assets 中下载 `StarTrace.apk`。也可打开 Actions → Android APK → 功能分支的最新成功 **workflow_dispatch** 运行 → Artifacts → `StarTrace-release-files`，解压获得同一签名 APK 与 README。`pull_request`/`push` 运行中的 `StarTrace-PR-debug.apk` 仅用于测试，不上传 Release，也不用于覆盖正式签名版本；不要为安装调试包而卸载丢失本地数据。仓库保持公开，Release 附件可直接下载；Actions 产物下载可能仍需登录 GitHub。
+**新仓库目前未配置原发布签名 `SIGNING_BUNDLE`。不要卸载旧版来安装调试 APK，否则会丢失本地轨迹。**
 
-APK 使用可信分支手动构建时使用固定的个人发布密钥签名，不是每次变化的临时 debug 签名。包名 `com.meteorsss.startrace`。请保留同一仓库签名 Secret，后续正常覆盖更新；卸载会删除本地记录。
+当前 Actions 提供用于回归测试的调试构建，它不能覆盖原发布签名 APK。这里没有发布任何冒充可覆盖更新的正式 Release。
+
+若要生成可覆盖安装的 Kotlin 正式包，需要仓库所有者把**同一份原签名材料**安全配置为本仓库的 `SIGNING_BUNDLE`，再在 `main` 手动运行 Android APK。GitHub Secret 不可读回；不会生成新密钥冒充原签名，也不会把签名私钥写入源码或日志。工作流会验证原证书 SHA-256：
+
+`8cd33c25b2fd01833a56c0ff2e71a5bcb14d25eaa39046928bca92854edc1098`
+
+保持包名 `com.meteorsss.startrace` 和原 versionName `0.2.3-pr`。新仓库 versionCode 使用 `100000 + GITHUB_RUN_NUMBER`（可通过 `STARTRACE_VERSION_CODE` 显式指定），避免独立仓库运行编号较小导致升级降级错误。发布构建仍只含 `arm64-v8a`；测试构建保留模拟器所需架构。
 
 ## Release 下载文件
 
@@ -59,10 +69,10 @@ APK 使用可信分支手动构建时使用固定的个人发布密钥签名，�
 
 ## 云端构建与签名
 
-- Java 17、AGP 8.13.2、Gradle 8.13、compile/target SDK 36、min SDK 33（Android 13）。
-- 本分支与PR执行单元测试、Android Lint、release APK 编译、签名校验和隐私权限检查。
+- Kotlin 2.3.21、JDK/JVM target 17、AGP 8.13.2、Gradle 8.13、compile/target SDK 36、min SDK 33（Android 13）。
+- main 与 PR 执行单元测试、Android Lint、debug APK 和设备测试 APK 编译、权限检查；只有配置原签名后的可信 main 手动运行才生成签名 Release。
 - 单独的 Android 16 模拟器任务检查页面渲染、SQLite/GPX/CSV、录制服务开始/暂停/继续/停止；截图与日志保存在构建产物中。
-- `SIGNING_BUNDLE` 为 GitHub Actions Secret，含发布签名材料。密钥在云端生成，首次仅输出 GitHub 公钥加密的密文，经 API 存入 Secret；没有明文下载到开发电脑。
+- 原 Java 仓库的 `SIGNING_BUNDLE` 是已有发布签名材料；此 Secret 不会随 Git 仓库复制，当前新仓库尚未配置。
 - **不要重新初始化或删除 SIGNING_BUNDLE**，否则现有 APK 无法由新密钥直接覆盖升级。当前唯一持久副本在仓库 Secret，应另行安排经过授权的加密离线备份。
 - 签名 Secret 仅由构建任务读取；解密后的密钥只存在临时云端运行器，构建结束删除。
 - Actions artifacts 有保留期，正式版本发布到公开 Releases。Actions 额度/费用由账号方案决定，不主动开启付费资源。
@@ -107,7 +117,7 @@ MapLibre Native Android 13.5.4 + OpenFreeMap Liberty；免注册、免API Key。
 数据库v1→v2只新增可空高度/速度精度字段，不清空历史或收藏。CSV追加这些字段；旧GPX格式仍保留椭球高扩展，不伪装海拔。升级到PR版后不建议降级数据库，安装前导出重要数据。
 PR构建不读取发布签名密钥；仅受信任功能分支手动workflow_dispatch使用原签名生成可覆盖安装的PR预览APK。所有产物来自Actions。按所有者要求提供纯ARM64签名APK并发布为 **Pre-release**；**不合并main，不修改仓库可见性**。调试测试包保留模拟器所需架构，不作为发布附件。
 
-测试：纯Java统计/几何单测、SQLite原版本迁移、MapLibre无网络样式/轨迹/生命周期、OpenFreeMap在线底图加载。在线网络可用性仅代表GitHub运行器，不能保证你的移动网络或红米渲染/耗电表现。所有测试位置为合成样例，不使用用户位置。
+原项目测试：纯Java统计/几何单测（本仓库已迁移为 Kotlin）、SQLite原版本迁移、MapLibre无网络样式/轨迹/生命周期、OpenFreeMap在线底图加载。在线网络可用性仅代表GitHub运行器，不能保证你的移动网络或红米渲染/耗电表现。所有测试位置为合成样例，不使用用户位置。
 
 
 ## 0.2.1-pr · KML 导出与速度居中
