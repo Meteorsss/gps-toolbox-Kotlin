@@ -267,7 +267,7 @@ class LocationContinuityTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity {
                 val permissions = it.packageManager.getPackageInfo(it.packageName, PackageManager.GET_PERMISSIONS).requestedPermissions
-                assertTrue(permissions.contains(Manifest.permission.ACCESS_BACKGROUND_LOCATION))
+                assertTrue(permissions!!.contains(Manifest.permission.ACCESS_BACKGROUND_LOCATION))
                 assertEquals("package:${it.packageName}", BackgroundLocation.settingsIntent(it).data.toString())
                 val before = BackgroundLocation.alwaysAllowed(it)
                 val dialog = BackgroundLocation.showAlwaysPermission(it)!!
