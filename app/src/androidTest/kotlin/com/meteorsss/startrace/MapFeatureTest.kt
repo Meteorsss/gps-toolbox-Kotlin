@@ -48,7 +48,10 @@ class MapFeatureTest {
             if (ready[0]) return
             SystemClock.sleep(100)
         }
-        Assert.fail("Timed out: " + label)
+        var state = ""
+        scenario.onActivity { state = it.mapStateForTests() }
+        shot("failed-map-load")
+        Assert.fail("Timed out: " + label + " " + state)
     }
 
     private fun fixture(): Long {
@@ -317,6 +320,7 @@ class MapFeatureTest {
     @Test
     @Throws(Exception::class)
     fun onlineOpenFreeMapLoadsWithConsent() {
+        MapPolicy.select(context(), MapBasemap.OPEN_FREE_MAP)
         MapPolicy.allow(context(), true)
         val id = fixture()
         try {

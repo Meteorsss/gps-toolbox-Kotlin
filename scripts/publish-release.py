@@ -21,7 +21,20 @@ def api(path):
 run=api(f'repos/{repo}/actions/runs/{run_id}')
 assert run['name']=='Android APK' and run['path']=='.github/workflows/android.yml'
 assert run['status']=='completed' and run['conclusion']=='success'
-assert run['event']=='workflow_dispatch' and run['head_branch']=='main'
+assert run['event']=='workflow_dispatch'
+assert run['actor']['login']=='Meteorsss'
+branch=os.environ['GITHUB_REF_NAME']
+assert branch in ['main','feature/osm-standard-phone-heading']
+assert run['head_branch']==branch
+pr_number=None
+if branch!='main':
+    assert run['head_sha']==os.environ['GITHUB_SHA'], 'Publish exactly the tested feature branch commit'
+    prs=api(f'repos/{repo}/pulls?state=open&base=main&head=Meteorsss:{branch}')
+    assert len(prs)==1
+    pr=prs[0]
+    assert pr['head']['sha']==run['head_sha'] and pr['head']['repo']['full_name']==repo
+    assert pr['user']['login']=='Meteorsss' and not pr['draft']
+    pr_number=pr['number']
 assert run['head_repository']['full_name']==repo
 subprocess.run(['git','merge-base','--is-ancestor',run['head_sha'],'HEAD'],check=True)
 jobs=api(f'repos/{repo}/actions/runs/{run_id}/jobs?per_page=100')['jobs']
@@ -61,6 +74,7 @@ assert not any(issue.get('severity') in ['Error','Fatal'] for issue in ET.parse(
 instrumentation=Path('device-checks/instrumentation.txt').read_text()
 assert f"OK ({expectations['device_tests']} tests)" in instrumentation
 assert 'LocationContinuityTest' in instrumentation
+assert 'MapLayersHeadingTest' in instrumentation
 assert not any(x in instrumentation for x in ['FAILURES!!!','INSTRUMENTATION_FAILED','Process crashed'])
 release_version=report['version_name'].removesuffix('-pr')
 tag=f'kotlin-v{release_version}-build-{run["run_number"]}'
@@ -75,9 +89,16 @@ notes=f"""## 星迹 GPS 工具箱 · Kotlin 版（ARM64）
 
 ### 安装与升级
 - 这是用户明确要求的新固定发布签名，**不能覆盖原 Java 签名版**。首次安装请先卸载原版；卸载会删除其本地数据。
-- **已安装 Kotlin build 12 的用户可直接覆盖安装，无需卸载，保留本地轨迹。**本版沿用同一固定签名；不要删除或重新初始化 SIGNING_BUNDLE。
+- **已安装此前 Kotlin 固定签名版的用户可直接覆盖安装，无需卸载，保留本地轨迹。**本版沿用同一固定签名；不要删除或重新初始化 SIGNING_BUNDLE。
 - Android 13 及以上，仅 arm64-v8a，适用于红米 K70 的硬件架构。包名 {report['package']}。
 - APK versionName={report['version_name']}；versionCode={report['version_code']}；不是 debug 包。
+
+### PR 分支预发布（未合并 main）
+- 源码来自 `{branch}`，Pull Request #{pr_number}；本次不修改 main。
+- 新增 OpenStreetMap 标准底图，保留 OpenFreeMap；“底图”菜单切换并记住选择。
+- 新增手机朝向箭头（真北），不使用 GPS 行进方向；朝向不可靠/过期时隐藏。
+- 切换底图保留视野、轨迹和 GNSS 会话。OSM 标准图按视野加载、缓存、署名，禁用预取。
+- 升级后首次使用地图需重新确认新增服务的联网隐私说明。
 
 ### 功能与验证
 - 以原 main + PR #1 最新代码为基线迁移为 Kotlin，保留地图、轨迹统计、GPX/KML/CSV 导出、记录间隔、三主题和独立测速。
