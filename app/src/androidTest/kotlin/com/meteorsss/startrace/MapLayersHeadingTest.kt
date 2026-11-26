@@ -102,6 +102,19 @@ class MapLayersHeadingTest {
         return id
     }
 
+    private fun awaitVisibleMarker(scenario: ActivityScenario<MapActivity>, online: Boolean) {
+        var current: MapActivity? = null
+        scenario.onActivity { current = it }
+        await("actual position + heading rendered") {
+            val activity = current!!
+            // Renew synthetic test data if the emulator/network needs a long time.
+            if (app.engine.age() > 4000) { sample(); activity.injectHeadingForTests(90.0) }
+            (!online || activity.renderedForTests()) &&
+                activity.renderedFeaturesForTests("position-layer") > 0 &&
+                activity.renderedFeaturesForTests("phone-heading-layer") > 0
+        }
+    }
+
     private fun shot(name: String) {
         instrumentation.waitForIdleSync()
         SystemClock.sleep(700)
@@ -138,6 +151,7 @@ class MapLayersHeadingTest {
                 assertFalse(it.attributionForTests().contains("OpenFreeMap"))
                 it.injectHeadingForTests(90.0)
             }
+            awaitVisibleMarker(scenario, online = true)
             shot("map-osm-standard-heading")
             scenario.onActivity { it.selectBasemapForTests(MapBasemap.OPEN_FREE_MAP) }
             awaitMap(scenario, true, 4)
@@ -184,6 +198,7 @@ class MapLayersHeadingTest {
                 assertEquals("map", it.headingAlignmentForTests())
                 assertEquals(270f, app.engine.location!!.bearing, 0f)
             }
+            awaitVisibleMarker(scenario, online = false)
             shot("map-rotated-phone-heading")
             scenario.onActivity {
                 sample(ageMs = 20000)

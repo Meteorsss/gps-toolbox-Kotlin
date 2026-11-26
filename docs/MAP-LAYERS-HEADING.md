@@ -15,8 +15,8 @@ No changes to recording algorithms, SQLite schema, export formats, manifest or b
   Old v1 consent is not silently reused. Cancel leaves choice unchanged. Offline mode
   uses a style with no remote sources, sprites or glyphs.
 - `MapNetwork` installs a process-wide OkHttp 4.12.0 client (same version used by
-  MapLibre 13.5.4), identifying StarTrace and its public repository. It limits host
-  concurrency to 4, uses a 32 MiB HTTP cache in addition to MapLibre native resource
+  MapLibre 13.5.4), identifying StarTrace and its public repository. It limits OSM host
+  concurrency to 4 (retaining MapLibre’s 20 for the existing vector provider), uses a 32 MiB HTTP cache in addition to MapLibre native resource
   storage and honours Cache-Control/Expires/ETag/Last-Modified. No request URLs logged.
 - Revocation cancels queued/in-flight HTTP calls and the interceptor rejects further
   requests while consent is absent. Requests already received by a server cannot be undone.
@@ -72,3 +72,9 @@ No pull_request_target workflow or automatic PR publish is added.
 - Same tag, `module/http/HttpRequestUtil.java` / `HttpRequestImpl.java` (custom Call.Factory and cache headers)
 - Same tag, `platform/android/gradle/libs.versions.toml` (OkHttp 4.12.0)
 - https://developer.android.com/develop/sensors-and-location/sensors/sensors_position
+
+Rendering follow-up: only changed GeoJSON sources and meaningful heading changes are sent
+to the renderer, avoiding repeated symbol placement for identical data. Complete-frame
+callbacks report viewport loading rather than just style loading. Device tests query actual
+rendered position/arrow features before capturing screenshots; API properties alone are not
+considered proof that an arrow was drawn.

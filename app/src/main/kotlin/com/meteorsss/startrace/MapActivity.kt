@@ -66,6 +66,9 @@ class MapActivity : Activity() {
     private var headingVisible = false
     private var headingAngle = Double.NaN
     private var headingFrames = 0L
+    private var appliedHeading = Double.NaN
+    private var appliedHeadingVisible = false
+    private val sourceContents = mutableMapOf<String, String>()
     private val headingTick = object : Runnable {
         override fun run() {
             if (!resumed) return
@@ -283,9 +286,11 @@ class MapActivity : Activity() {
             mapView = MapView(this)
             holder!!.addView(mapView, FrameLayout.LayoutParams(-1, -1))
             mapView!!.onCreate(mapState)
-            mapView!!.addOnDidFinishLoadingMapListener(OnDidFinishLoadingMapListener {
-                rendered = true
-                if (!destroyed && online && !localFallback) mapStatus?.text = "${basemap.label} · 底图已载入"
+            mapView!!.addOnDidFinishRenderingFrameListener(MapView.OnDidFinishRenderingFrameListener { fully, _, _ ->
+                if (!destroyed && style != null && fully) {
+                    rendered = true
+                    if (online && !localFallback) mapStatus?.text = "${basemap.label} · 底图已载入"
+                }
             })
             mapView!!.addOnDidFailLoadingMapListener(OnDidFailLoadingMapListener { error: String? ->
                 if (destroyed) return@OnDidFailLoadingMapListener
@@ -301,6 +306,7 @@ class MapActivity : Activity() {
                 map!!.getUiSettings().setCompassEnabled(true)
                 map!!.getUiSettings().setAttributionEnabled(true)
                 map!!.addOnCameraMoveStartedListener(OnCameraMoveStartedListener { reason: Int ->
+                    rendered = false
                     if (reason == OnCameraMoveStartedListener.REASON_API_GESTURE) {
                         following = false
                         updateFollowLabel()
@@ -383,6 +389,9 @@ class MapActivity : Activity() {
     }
 
     private fun addOverlays() {
+        sourceContents.clear()
+        appliedHeading = Double.NaN
+        appliedHeadingVisible = false
         for (id in arrayOf<String>("track", "position", "accuracy", "endpoints", "places")) style!!.addSource(
             GeoJsonSource(id, FeatureCollection.fromFeatures(arrayOf<Feature>()))
         )
@@ -486,14 +495,25 @@ class MapActivity : Activity() {
         headingAngle = headingSmoother.update(heading, nowNanos)
         headingVisible = headingAngle.isFinite()
         val layer = style?.getLayerAs<SymbolLayer>("phone-heading-layer") ?: return
-        layer.setProperties(PropertyFactory.visibility(if (headingVisible) Property.VISIBLE else Property.NONE))
-        if (headingVisible) layer.setProperties(PropertyFactory.iconRotate(headingAngle.toFloat()))
+        if (headingVisible != appliedHeadingVisible) {
+            layer.setProperties(PropertyFactory.visibility(if (headingVisible) Property.VISIBLE else Property.NONE))
+            appliedHeadingVisible = headingVisible
+        }
+        // Layout changes invalidate symbol placement. Avoid redoing identical/subpixel work.
+        if (headingVisible && (!appliedHeading.isFinite() || kotlin.math.abs(HeadingSmoother.delta(appliedHeading, headingAngle)) >= .3)) {
+            layer.setProperties(PropertyFactory.iconRotate(headingAngle.toFloat()))
+            appliedHeading = headingAngle
+        }
     }
 
     private fun setSource(id: String, features: MutableList<Feature>?) {
         if (style == null) return
-        val source = style!!.getSourceAs<GeoJsonSource?>(id)
-        if (source != null) source.setGeoJson(FeatureCollection.fromFeatures(features!!))
+        val source = style!!.getSourceAs<GeoJsonSource?>(id) ?: return
+        val collection = FeatureCollection.fromFeatures(features!!)
+        val json = collection.toJson()
+        if (sourceContents[id] == json) return
+        sourceContents[id] = json
+        source.setGeoJson(collection)
     }
 
     private fun updatePosition(moveCamera: Boolean = true) {
@@ -928,7 +948,12 @@ class MapActivity : Activity() {
         handler.removeCallbacks(headingTick)
         headingSmoother.reset()
         renderHeading(value, SystemClock.elapsedRealtimeNanos())
+        headingStatus?.text = if (value.isFinite()) "测试合成手机朝向 · 真北参考（非行进方向）" else "测试朝向不可用"
     }
+    fun renderedFeaturesForTests(layer: String): Int = map!!.queryRenderedFeatures(
+        android.graphics.RectF(0f, 0f, mapView!!.width.toFloat(), mapView!!.height.toFloat()), layer).size
+    fun mapStateForTests() = "online=$online fallback=$localFallback rendered=$rendered style=${style != null} " +
+        "points=${points.size} status=${mapStatus?.text} heading=$headingVisible position=${sourceContents["position"]}"
     fun moveCameraForTests(position: org.maplibre.android.camera.CameraPosition) {
         check(BuildConfig.DEBUG)
         following = false
