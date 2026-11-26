@@ -3,10 +3,11 @@ on:
   workflow_dispatch:
     inputs:
       run_id:
-        description: Successful signed main-branch Android APK run ID
+        description: Successful signed Android APK run ID from this exact branch
         required: true
         type: string
 permissions:
+  pull-requests: read
   actions: read
   contents: write
 concurrency:
@@ -14,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    if: github.repository == 'Meteorsss/gps-toolbox-Kotlin' && github.ref == 'refs/heads/main'
+    if: github.repository == 'Meteorsss/gps-toolbox-Kotlin' && github.actor == 'Meteorsss' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/osm-standard-phone-heading')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

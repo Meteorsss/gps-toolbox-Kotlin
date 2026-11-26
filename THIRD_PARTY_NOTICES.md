@@ -72,3 +72,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ## Kotlin standard library
 
 Kotlin standard library 2.3.21, Copyright JetBrains s.r.o. and Kotlin Programming Language contributors, is distributed under Apache License 2.0. The complete license is included in docs/licenses/Kotlin-Apache-2.0.txt. Kotlin runtime code is not a separate tracking or networking SDK.
+
+## OpenStreetMap Standard raster basemap
+
+© OpenStreetMap contributors, https://www.openstreetmap.org/copyright .
+Map data is available under the Open Database License. The Standard raster service is
+provided by the OpenStreetMap Foundation and subject to https://operations.osmfoundation.org/policies/tiles/ .
+Attribution is visible/clickable in the map. No API key, bulk/offline download or prefetch.
+
+## OkHttp
+
+OkHttp 4.12.0, Copyright Square, Inc., Apache License 2.0 (https://github.com/square/okhttp).
+Already used by MapLibre; explicitly declared to configure app identification and HTTP caching.
+MockWebServer 4.12.0 is test-only and is not packaged in the app.

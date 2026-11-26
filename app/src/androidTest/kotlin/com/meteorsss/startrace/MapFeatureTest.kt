@@ -317,6 +317,7 @@ class MapFeatureTest {
     @Test
     @Throws(Exception::class)
     fun onlineOpenFreeMapLoadsWithConsent() {
+        MapPolicy.select(context(), MapBasemap.OPEN_FREE_MAP)
         MapPolicy.allow(context(), true)
         val id = fixture()
         try {

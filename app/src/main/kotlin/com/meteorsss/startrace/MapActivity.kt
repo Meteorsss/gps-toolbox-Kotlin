@@ -8,6 +8,11 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Insets
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
+import android.os.SystemClock
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -53,6 +58,21 @@ class MapActivity : Activity() {
     private var holder: FrameLayout? = null
     private var mapStatus: TextView? = null
     private var fixStatus: TextView? = null
+    private var headingStatus: TextView? = null
+    private var attribution: LinearLayout? = null
+    private var basemap = MapBasemap.OSM_STANDARD
+    private var styleSequence = 0L
+    private val headingSmoother = HeadingSmoother()
+    private var headingVisible = false
+    private var headingAngle = Double.NaN
+    private var headingFrames = 0L
+    private val headingTick = object : Runnable {
+        override fun run() {
+            if (!resumed) return
+            updateHeading()
+            handler.postDelayed(this, 50) // 20Hz, only while this map is resumed.
+        }
+    }
     private var summary: TextView? = null
     private var followButton: TextView? = null
     private var pauseButton: TextView? = null
@@ -100,6 +120,7 @@ class MapActivity : Activity() {
         super.onCreate(state)
         app = getApplication() as App
         ui = Ui(this, Preferences.light(this))
+        basemap = MapPolicy.selected(this)
         requestedTrack = getIntent().getLongExtra("track_id", -1)
         displayTrack = requestedTrack
         following = requestedTrack < 0
@@ -133,22 +154,15 @@ class MapActivity : Activity() {
         fixStatus = ui!!.text("等待定位", 12, ui!!.accent)
         fixStatus!!.setPadding(ui!!.dp(14f), 0, ui!!.dp(14f), ui!!.dp(6f))
         root.addView(fixStatus)
+        headingStatus = ui.text("手机朝向待获取", 11, ui.muted)
+        headingStatus!!.setPadding(ui.dp(14f), 0, ui.dp(14f), ui.dp(4f))
+        root.addView(headingStatus)
         holder = FrameLayout(this)
         root.addView(holder, LinearLayout.LayoutParams(-1, 0, 1f))
-        val attribution = ui!!.row()
-        attribution.setPadding(ui!!.dp(10f), ui!!.dp(5f), ui!!.dp(10f), ui!!.dp(5f))
-        for (item in arrayOf<Array<String>?>(
-            arrayOf<String>("MapLibre", "https://maplibre.org/"),
-            arrayOf<String>("OpenFreeMap", "https://openfreemap.org/"),
-            arrayOf<String>("© OpenMapTiles", "https://openmaptiles.org/"),
-            arrayOf<String>("© OSM contributors", "https://www.openstreetmap.org/copyright")
-        )) {
-            val link = ui!!.text(item!![0], 9, ui!!.muted)
-            link.setPadding(ui!!.dp(4f), ui!!.dp(3f), ui!!.dp(4f), ui!!.dp(3f))
-            link.setOnClickListener(View.OnClickListener { v: View? -> openLink(item[1]) })
-            attribution.addView(link, LinearLayout.LayoutParams(0, -2, 1f))
-        }
+        attribution = ui.row()
+        attribution!!.setPadding(ui.dp(10f), ui.dp(5f), ui.dp(10f), ui.dp(5f))
         root.addView(attribution)
+        updateAttribution()
         val actions = ui!!.row()
         actions.setPadding(ui!!.dp(10f), 0, ui!!.dp(10f), ui!!.dp(6f))
         followButton = ui!!.button("跟随位置", true, Runnable { this.follow() })
@@ -202,32 +216,62 @@ class MapActivity : Activity() {
     }
 
     fun showMapPolicy() {
+        var choice = basemap.ordinal
+        // A separate view keeps the privacy disclosure visible alongside radio choices.
+        val content = ui.column()
+        content.setPadding(ui.dp(16f), 0, ui.dp(16f), 0)
+        content.addView(ui.text(MapPolicy.DISCLOSURE, 13, ui.text))
+        val radios = RadioGroup(this)
+        MapBasemap.entries.forEachIndexed { index, item ->
+            radios.addView(RadioButton(this).apply {
+                id = View.generateViewId()
+                text = item.label
+                isChecked = index == choice
+                setOnClickListener { choice = index }
+            })
+        }
+        content.addView(radios)
+        val scroll = ScrollView(this).apply { addView(content) }
         AlertDialog.Builder(this)
             .setTitle("在线地图与隐私")
-            .setMessage(MapPolicy.DISCLOSURE)
-            .setPositiveButton(
-                "允许在线底图",
-                DialogInterface.OnClickListener { d: DialogInterface?, w: Int ->
-                    MapPolicy.allow(this, true)
-                    switchMode()
-                })
-            .setNeutralButton(
-                "仅轨迹，不联网",
-                DialogInterface.OnClickListener { d: DialogInterface?, w: Int ->
-                    MapPolicy.allow(this, false)
-                    switchMode()
-                })
-            .setNegativeButton(
-                "返回",
-                DialogInterface.OnClickListener { d: DialogInterface?, w: Int ->
-                    if (mapView == null) finish()
-                })
+            .setView(scroll)
+            .setPositiveButton("允许在线底图") { _, _ ->
+                MapPolicy.select(this, MapBasemap.entries[choice])
+                MapPolicy.allow(this, true)
+                switchMode()
+            }
+            .setNeutralButton("仅轨迹，不联网") { _, _ ->
+                MapPolicy.allow(this, false)
+                switchMode()
+            }
+            .setNegativeButton("返回") { _, _ -> if (mapView == null) finish() }
             .show()
     }
 
+    private fun updateAttribution() {
+        val row = attribution ?: return
+        row.removeAllViews()
+        val links = mutableListOf("MapLibre" to "https://maplibre.org/")
+        if (basemap == MapBasemap.OPEN_FREE_MAP && MapPolicy.allowed(this)) {
+            links += "OpenFreeMap" to "https://openfreemap.org/"
+            links += "© OpenMapTiles" to "https://openmaptiles.org/"
+        }
+        links += "© OpenStreetMap contributors" to "https://www.openstreetmap.org/copyright"
+        links.forEach { (label, url) ->
+            row.addView(ui.text(label, 10, ui.muted).apply {
+                setPadding(ui.dp(4f), ui.dp(3f), ui.dp(4f), ui.dp(3f))
+                setOnClickListener { openLink(url) }
+            }, LinearLayout.LayoutParams(0, -2, if (label.startsWith("© OpenStreetMap")) 2f else 1f))
+        }
+    }
+
     private fun switchMode() {
-        if (mapView == null) installMap()
-        else recreate()
+        basemap = MapPolicy.selected(this)
+        online = MapPolicy.allowed(this) && !localTestStyle()
+        MapNetwork.cancelPending()
+        updateAttribution()
+        if (mapView == null) installMap() else loadStyle()
+        // Do not recreate Activity, touch GNSS/recorder, reset following or refit track.
     }
 
     private fun installMap() {
@@ -235,10 +279,14 @@ class MapActivity : Activity() {
         online = MapPolicy.allowed(this) && !localTestStyle()
         try {
             MapLibre.getInstance(getApplicationContext())
+            MapNetwork.install(this)
             mapView = MapView(this)
             holder!!.addView(mapView, FrameLayout.LayoutParams(-1, -1))
             mapView!!.onCreate(mapState)
-            mapView!!.addOnDidFinishLoadingMapListener(OnDidFinishLoadingMapListener { rendered = true })
+            mapView!!.addOnDidFinishLoadingMapListener(OnDidFinishLoadingMapListener {
+                rendered = true
+                if (!destroyed && online && !localFallback) mapStatus?.text = "${basemap.label} · 底图已载入"
+            })
             mapView!!.addOnDidFailLoadingMapListener(OnDidFailLoadingMapListener { error: String? ->
                 if (destroyed) return@OnDidFailLoadingMapListener
                 mapStatus!!.setText("底图加载失败，可重试；定位与记录不受影响")
@@ -249,6 +297,7 @@ class MapActivity : Activity() {
             mapView!!.getMapAsync(OnMapReadyCallback { m: MapLibreMap? ->
                 if (destroyed) return@OnMapReadyCallback
                 map = m
+                map!!.setPrefetchZoomDelta(0)
                 map!!.getUiSettings().setCompassEnabled(true)
                 map!!.getUiSettings().setAttributionEnabled(true)
                 map!!.addOnCameraMoveStartedListener(OnCameraMoveStartedListener { reason: Int ->
@@ -284,23 +333,25 @@ class MapActivity : Activity() {
 
     private fun loadStyle() {
         if (map == null || destroyed) return
+        val generation = ++styleSequence
         localFallback = false
+        rendered = false
         style = null
-        mapStatus!!.setText(if (online) "正在请求 OpenFreeMap 在线底图…" else "仅本地轨迹 · 无道路底图 · 不联网")
-        val builder: Style.Builder? =
-            if (online)
-                Style.Builder().fromUri(MapPolicy.STYLE_URL)
-            else
-                Style.Builder().fromJson(MapPolicy.LOCAL_STYLE)
+        mapStatus!!.text = if (online) "正在请求 ${basemap.label} 在线底图…" else "仅本地轨迹 · 无道路底图 · 不联网"
+        val builder = when {
+            !online -> Style.Builder().fromJson(MapPolicy.LOCAL_STYLE)
+            basemap == MapBasemap.OSM_STANDARD -> Style.Builder().fromJson(MapBasemap.OSM_STYLE)
+            else -> Style.Builder().fromUri(MapPolicy.STYLE_URL)
+        }
         map!!.setStyle(
             builder,
             OnStyleLoaded { s: Style? ->
-                if (destroyed) return@OnStyleLoaded
+                if (destroyed || generation != styleSequence) return@OnStyleLoaded
                 style = s
                 addOverlays()
-                mapStatus!!.setText(if (online) "在线底图已载入 · 瓦片按视野加载" else "仅本地轨迹 · 无道路底图 · 不联网")
-                lastFixElapsed = 0
-                updatePosition()
+                mapStatus!!.text = if (online) "${basemap.label} · 样式就绪，瓦片按视野加载" else "仅本地轨迹 · 无道路底图 · 不联网"
+                updatePosition(moveCamera = false)
+                updateHeading()
                 drawTrack()
             })
         handler.removeCallbacks(styleTimeout)
@@ -317,15 +368,16 @@ class MapActivity : Activity() {
     private fun loadLocalFallback() {
         if (map == null || destroyed || localFallback) return
         localFallback = true
+        val generation = ++styleSequence
         handler.removeCallbacks(styleTimeout)
         map!!.setStyle(
             Style.Builder().fromJson(MapPolicy.LOCAL_STYLE),
             OnStyleLoaded { s: Style? ->
-                if (destroyed) return@OnStyleLoaded
+                if (destroyed || generation != styleSequence) return@OnStyleLoaded
                 style = s
                 addOverlays()
-                lastFixElapsed = 0
-                updatePosition()
+                updatePosition(moveCamera = false)
+                updateHeading()
                 drawTrack()
             })
     }
@@ -383,6 +435,59 @@ class MapActivity : Activity() {
                     PropertyFactory.circleStrokeColor("#FFFFFF")
                 )
         )
+        addHeadingLayer()
+    }
+
+    /** Icon points toward the phone screen's top edge, in true-north map coordinates. */
+    private fun addHeadingLayer() {
+        val size = ui.dp(64f)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        bitmap.density = resources.displayMetrics.densityDpi
+        val canvas = Canvas(bitmap)
+        canvas.scale(size / 64f, size / 64f)
+        val path = Path().apply {
+            moveTo(32f, 3f); lineTo(22f, 23f); lineTo(32f, 19f); lineTo(42f, 23f); close()
+        }
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.WHITE; style = Paint.Style.STROKE; strokeWidth = 4f
+            strokeJoin = Paint.Join.ROUND
+        }
+        canvas.drawPath(path, paint)
+        paint.style = Paint.Style.FILL; paint.color = android.graphics.Color.rgb(22, 143, 255)
+        canvas.drawPath(path, paint)
+        style!!.addImage("phone-heading-icon", bitmap)
+        style!!.addLayer(SymbolLayer("phone-heading-layer", "position").withProperties(
+            PropertyFactory.iconImage("phone-heading-icon"),
+            PropertyFactory.iconAllowOverlap(true), PropertyFactory.iconIgnorePlacement(true),
+            PropertyFactory.iconRotationAlignment(Property.ICON_ROTATION_ALIGNMENT_MAP),
+            PropertyFactory.iconPitchAlignment(Property.ICON_PITCH_ALIGNMENT_MAP),
+            PropertyFactory.visibility(Property.NONE)
+        ))
+    }
+
+    private fun updateHeading() {
+        val engine = app.engine
+        val age = if (engine.orientationAt == 0L) -1L else SystemClock.elapsedRealtime() - engine.orientationAt
+        val heading = MapHeading.usable(engine.hasCompass, engine.compassSubscribed(), engine.fresh(),
+            age, engine.sensorAccuracy, engine.trueHeading().toDouble())
+        val message = when {
+            !engine.hasCompass -> "手机不支持方向传感器 · 仅显示位置"
+            !engine.fresh() -> "等待新鲜位置以校正真北 · 箭头暂隐藏"
+            age !in 0..MapHeading.MAX_SAMPLE_AGE_MS -> "手机朝向待获取 · 箭头暂隐藏"
+            !heading.isFinite() -> "朝向精度不足 · 请远离磁性物体并校准手机"
+            else -> "箭头 = 手机屏幕上方朝向 · 真北参考（非行进方向）"
+        }
+        if (headingStatus?.text != message) headingStatus?.text = message
+        renderHeading(heading, SystemClock.elapsedRealtimeNanos())
+        headingFrames++
+    }
+
+    private fun renderHeading(heading: Double, nowNanos: Long) {
+        headingAngle = headingSmoother.update(heading, nowNanos)
+        headingVisible = headingAngle.isFinite()
+        val layer = style?.getLayerAs<SymbolLayer>("phone-heading-layer") ?: return
+        layer.setProperties(PropertyFactory.visibility(if (headingVisible) Property.VISIBLE else Property.NONE))
+        if (headingVisible) layer.setProperties(PropertyFactory.iconRotate(headingAngle.toFloat()))
     }
 
     private fun setSource(id: String, features: MutableList<Feature>?) {
@@ -391,7 +496,7 @@ class MapActivity : Activity() {
         if (source != null) source.setGeoJson(FeatureCollection.fromFeatures(features!!))
     }
 
-    private fun updatePosition() {
+    private fun updatePosition(moveCamera: Boolean = true) {
         if (destroyed) return
         val fresh = app!!.engine.fresh()
         val l = app!!.engine.location
@@ -410,6 +515,7 @@ class MapActivity : Activity() {
         if (!fresh) {
             setSource("position", mutableListOf<Feature>())
             setSource("accuracy", mutableListOf<Feature>())
+            renderHeading(Double.NaN, SystemClock.elapsedRealtimeNanos())
             return
         }
         setSource(
@@ -430,7 +536,7 @@ class MapActivity : Activity() {
                 Feature.fromGeometry(Polygon.fromLngLats(mutableListOf<MutableList<Point?>?>(coordinates)))
             )
         )
-        if (following && requestedTrack < 0 && l!!.getElapsedRealtimeNanos() != lastFixElapsed) {
+        if (moveCamera && following && requestedTrack < 0 && l!!.getElapsedRealtimeNanos() != lastFixElapsed) {
             lastFixElapsed = l!!.getElapsedRealtimeNanos()
             map!!.animateCamera(
                 newLatLngZoom(
@@ -741,17 +847,21 @@ class MapActivity : Activity() {
         super.onResume()
         resumed = true
         Preferences.applyWindow(this, ui!!.light)
-        app!!.engine.setCompassActive(false)
+        app.engine.setCompassActive(true)
         app!!.engine.observe(fixObserver)
         app.engine.reconcile()
         BackgroundLocation.resumeIfEnabled(this)
         if (mapView != null) mapView!!.onResume()
         handler.post(tick)
+        handler.post(headingTick)
     }
 
     override fun onPause() {
         resumed = false
         handler.removeCallbacks(tick)
+        handler.removeCallbacks(headingTick)
+        app.engine.setCompassActive(false)
+        headingSmoother.reset()
         app!!.engine.unobserve(fixObserver)
         if (mapView != null) mapView!!.onPause()
         super.onPause()
@@ -765,6 +875,7 @@ class MapActivity : Activity() {
 
     override fun onDestroy() {
         destroyed = true
+        styleSequence++
         if (statisticsDialog != null) statisticsDialog!!.dismiss()
         loadSequence++
         handler.removeCallbacksAndMessages(null)
@@ -787,6 +898,41 @@ class MapActivity : Activity() {
         out.putLong("requested_track", requestedTrack)
         out.putBoolean("fit_pending", fitPending)
         out.putLong("display_track", displayTrack)
+    }
+
+    fun selectBasemapForTests(value: MapBasemap) {
+        check(BuildConfig.DEBUG)
+        MapPolicy.select(this, value)
+        switchMode()
+    }
+
+    fun revokeOnlineForTests() {
+        check(BuildConfig.DEBUG)
+        MapPolicy.allow(this, false)
+        switchMode()
+    }
+
+    fun basemapForTests() = basemap
+    fun headingFramesForTests() = headingFrames
+    fun headingVisibleForTests() = headingVisible
+    fun headingAngleForTests() = style?.getLayerAs<SymbolLayer>("phone-heading-layer")?.iconRotate?.value
+    fun headingAlignmentForTests() = style?.getLayerAs<SymbolLayer>("phone-heading-layer")?.iconRotationAlignment?.value
+    fun cameraForTests() = map!!.cameraPosition
+    fun prefetchForTests() = map!!.prefetchZoomDelta
+    fun attributionForTests() = (0 until (attribution?.childCount ?: 0)).joinToString(" ") {
+        (attribution!!.getChildAt(it) as TextView).text
+    }
+    fun positionCountForTests() = style?.getSourceAs<GeoJsonSource>("position")?.querySourceFeatures(null)?.size ?: 0
+    fun injectHeadingForTests(value: Double) {
+        check(BuildConfig.DEBUG)
+        handler.removeCallbacks(headingTick)
+        headingSmoother.reset()
+        renderHeading(value, SystemClock.elapsedRealtimeNanos())
+    }
+    fun moveCameraForTests(position: org.maplibre.android.camera.CameraPosition) {
+        check(BuildConfig.DEBUG)
+        following = false
+        map!!.moveCamera(org.maplibre.android.camera.CameraUpdateFactory.newCameraPosition(position))
     }
 
     fun lightForTests(): Boolean {
